@@ -1,4 +1,4 @@
-# Pi.Alert - Device Management
+# Pi.NMS - Device Management
 <!--- --------------------------------------------------------------------- --->
 To edit device information:
   - Select "Devices" in the menu on the left of the screen
@@ -18,7 +18,7 @@ To edit device information:
   - **Owner**: Device owner (The list is self-populated with existing owners)
   - **Type**: Select a device type from the dropdown list (Smartphone, Table,
       Laptop, TV, router, ....) or type a new device type
-  - **Vendor**: Automatically updated by Pi.Alert
+  - **Vendor**: Automatically updated by Pi.NMS
   - **Favorite**: Mark the device as favorite and then it will appears at the
       begining of the device list
   - **Group**: Select a grouper ('Always on', 'Personal', Friends') or type
@@ -62,7 +62,7 @@ know, but it **is totally useless when connecting to our own WIFI's** or known
 networks.
 
 **I recommend disabling this operation when connecting our devices to our own
-WIFI's**, in this way, Pi.Alert will be able to identify the device, and it
+WIFI's**, in this way, Pi.NMS will be able to identify the device, and it
 will not identify it as a new device every so often (every time IOS or Android
 decides to change the MAC).
 
@@ -82,7 +82,7 @@ decides to change the MAC).
   [Read more here](../LICENSE.txt)
 
 ### Contact
-  pi.alert.application@gmail.com
+  https://github.com/lruiz9136/Pi.NMS/issues
   
   ***Suggestions and comments are welcome***
 
@@ -92,4 +92,3 @@ decides to change the MAC).
 [screen1]: ./img/2_1_device_details.jpg  "Screen 1"
 [ios]:     https://9to5mac.com/wp-content/uploads/sites/6/2020/08/how-to-use-private-wifi-mac-address-iphone-ipad.png?resize=2048,1009 "ios"
 [Android]: ./img/android_random_mac.jpg  "Android"
-

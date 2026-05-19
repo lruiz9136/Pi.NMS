@@ -1,4 +1,4 @@
-# Pi.Alert Uninstallation Guide
+# Pi.NMS Uninstallation Guide
 <!--- --------------------------------------------------------------------- --->
 Estimated time: 5'
 
@@ -10,34 +10,34 @@ Estimated time: 5'
 ## Uninstallation process (step by step)
 <!--- --------------------------------------------------------------------- --->
 
-1.1 - Remove Pi.Alert files
+1.1 - Remove Pi.NMS files
   ```
   rm -r "~/pialert"
   ```
 
-1.2 - Remove Pi.Alert web front
+1.2 - Remove Pi.NMS web front
   ```
   sudo rm "/var/www/html/pialert"
   ```
 
-1.3 - Remove lighttpd Pi.Alert config
+1.3 - Remove lighttpd Pi.NMS config
   ```
   sudo rm "/etc/lighttpd/conf-available/pialert_front.conf"
   sudo rm "/etc/lighttpd/conf-enabled/pialert_front.conf"
   ```
 
-1.4 - Remove lighttpd Pi.Alert cache
+1.4 - Remove lighttpd Pi.NMS cache
   ```
   sudo rm -r /var/cache/lighttpd/compress/pialert
   ```
 
-1.5 - Remove Pi.Alert DNS entry
+1.5 - Remove Pi.NMS DNS entry
   ```
   sudo sed -i '/pi.alert/d' /etc/pihole/custom.list
   sudo pihole restartdns
   ```
 
-1.6 - Remove Pi.Alert crontab jobs
+1.6 - Remove Pi.NMS crontab jobs
   ```
   crontab -l 2>/dev/null | sed ':a;N;$!ba;s/#-------------------------------------------------------------------------------\n#  Pi.Alert\n#  Open Source Network Guard \/ WIFI & LAN intrusion detector \n#\n#  pialert.cron - Back module. Crontab jobs\n#-------------------------------------------------------------------------------\n#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3\n#-------------------------------------------------------------------------------//g' | crontab -
   crontab -l 2>/dev/null | sed '/pialert.py/d' | crontab -
@@ -45,9 +45,9 @@ Estimated time: 5'
 
 ### Uninstallation Notes
 <!--- --------------------------------------------------------------------- --->
-  - If you installed Pi-hole during the Pi.Alert installation process,
+  - If you installed Pi-hole during the Pi.NMS installation process,
  
-    Pi-hole will still be available after uninstalling Pi.Alert
+    Pi-hole will still be available after uninstalling Pi.NMS
 
 
   - lighttpd, PHP, arp-scan & Python have not been uninstalled
@@ -61,4 +61,4 @@ Estimated time: 5'
   [Read more here](../LICENSE.txt)
 
 ### Contact
-  pi.alert.application@gmail.com
+  https://github.com/lruiz9136/Pi.NMS/issues

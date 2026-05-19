@@ -1,127 +1,119 @@
-# Pi.Alert
-<!--- --------------------------------------------------------------------- --->
+# Pi.NMS
 
-WIFI / LAN intruder detector.
+Pi.NMS is a lightweight network management system for home labs, small offices,
+and prosumer networks. It starts from the Pi.Alert foundation of local network
+discovery and device presence tracking, then expands toward practical NMS
+workflows: inventory, health checks, status, events, and actionable alerts.
 
-Scan the devices connected to your WIFI / LAN and alert you the connection of
-unknown devices. It also warns the disconnection of "always connected" devices.
+This fork is in active transition. Some internal file names, database names, and
+install paths still use the original `pialert` naming while compatibility and
+migration work continues.
 
 ![Main screen][main]
 
-*(Apologies for my English and my limited knowledge of Python, php and
-JavaScript)*
+## Current Capabilities
 
-## How it works
-The system continuously scans the network for:
-  - New devices
-  - New connections (re-connections)
-  - Disconnections
-  - "Always Connected" devices down
-  - Devices IP changes
-  - Internet IP address changes
+Pi.NMS currently scans the network for:
+
+- New devices
+- New connections and reconnections
+- Disconnections
+- Always-connected devices going down
+- Device IP changes
+- Internet IP address changes
+
+## Direction
+
+The near-term goal is to evolve from a network presence detector into a small
+network NMS with:
+
+- Device inventory and ownership metadata
+- Availability checks such as ICMP, TCP, HTTP, and DNS
+- Node status states such as up, down, warning, unknown, and maintenance
+- Event history and incident views
+- Notification rules by severity, device group, or check type
+- Simple topology and subnet views
 
 ## Scan Methods
+
 Up to three scanning methods are used:
-  - **Method 1: arp-scan**. The arp-scan system utility is used to search
-        for devices on the network using arp frames.
-  - **Method 2: Pi-hole**. This method is optional and complementary to
-        method 1. If the Pi-hole DNS server is active, Pi.Alert examines its
-        activity looking for active devices using DNS that have not been
-        detected by method 1.
-  - **Method 3. dnsmasq**. This method is optional and complementary to the
-        previous methods. If the DHCP server dnsmasq is active, Pi.Alert
-        examines the DHCP leases (addresses assigned) to find active devices
-        that were not discovered by the other methods.
+
+- **Method 1: arp-scan**. The `arp-scan` system utility searches for devices on
+  the network using ARP frames.
+- **Method 2: Pi-hole**. If the Pi-hole DNS server is active, Pi.NMS examines
+  its activity looking for active devices using DNS that were not detected by
+  method 1.
+- **Method 3: dnsmasq**. If the dnsmasq DHCP server is active, Pi.NMS examines
+  DHCP leases to find active devices that were not discovered by the other
+  methods.
 
 ## Components
-The system consists of two parts:
 
-### Back
-In charge of:
-  - Scan the network searching connected devices using the scanning methods
-    described
-  - Store the information in the DB
-  - Report the changes detected by e-mail
+### Back End
 
-  | ![Report 1][report1] | ![Report 2][report2] |
-  | -------------------- | -------------------- |
+The back end:
 
-### Front
-A web frontal that allows:
-  - Manage the devices inventory and the characteristics
-  - Display in a visual way all the information collected by the back
-    - Sessions
-    - Connected devices
-    - Favorites
-    - Events
-    - Presence
-    - Concurrent devices
-    - Down alerts
-    - IP's
-    - ...
+- Scans the network using the configured scan methods
+- Stores device, event, and presence information in SQLite
+- Sends reports by email when configured
 
-  | ![Screen 1][screen1] | ![Screen 2][screen2] |
-  | -------------------- | -------------------- |
-  | ![Screen 3][screen3] | ![Screen 4][screen4] |
+| ![Report 1][report1] | ![Report 2][report2] |
+| -------------------- | -------------------- |
 
+### Front End
 
-# Installation
-<!--- --------------------------------------------------------------------- --->
-Initially designed to run on a Raspberry Pi, probably it can run on many other
-Linux distributions.
+The web UI allows you to:
 
-- One-step Automated Install:
-  #### `curl -sSL https://github.com/pucherot/Pi.Alert/raw/main/install/pialert_install.sh | bash`
+- Manage the device inventory
+- Review sessions, events, presence, and down alerts
+- Inspect connected, favorite, and unknown devices
+- Track IP addresses and recent network changes
 
-- [Installation Guide (step by step)](docs/INSTALL.md)
+| ![Screen 1][screen1] | ![Screen 2][screen2] |
+| -------------------- | -------------------- |
+| ![Screen 3][screen3] | ![Screen 4][screen4] |
 
+## Installation
 
-# Update
-<!--- --------------------------------------------------------------------- --->
-- One-step Automated Update:
-  #### `curl -sSL https://github.com/pucherot/Pi.Alert/raw/main/install/pialert_update.sh | bash`
+Pi.NMS is currently designed around the original Raspberry Pi-oriented install
+flow. Manual installation is recommended while the fork is being renamed and
+packaged.
 
-# Uninstall process
-<!--- --------------------------------------------------------------------- --->
-  - [Unistall process](docs/UNINSTALL.md)
+- [Installation Guide](docs/INSTALL.md)
+- [Uninstall Guide](docs/UNINSTALL.md)
+- [Device Management](docs/DEVICE_MANAGEMENT.md)
 
+## Project Status
 
-# Device Management
-<!--- --------------------------------------------------------------------- --->
-  - [Device Management instructions](docs/DEVICE_MANAGEMENT.md)
+This repository is a fork of the original Pi.Alert project. The first cleanup
+phase focuses on project identity, documentation, and visible UI naming. Later
+phases should handle internal package names, install paths, service names, and
+database migrations.
 
+## Powered By
 
-## Other useful info
-<!--- --------------------------------------------------------------------- --->
+| Product      | Purpose                                |
+| ------------ | -------------------------------------- |
+| Python       | Back-end scanning and reporting        |
+| PHP          | Web front end                          |
+| JavaScript   | Front-end behavior                     |
+| Bootstrap    | Front-end framework                    |
+| AdminLTE     | Admin dashboard template               |
+| FullCalendar | Calendar component                     |
+| SQLite       | Database engine                        |
+| Lighttpd     | Web server                             |
+| arp-scan     | Network scanning with ARP              |
+| Pi-hole      | Optional DNS activity source           |
+| dnsmasq      | Optional DHCP lease source             |
 
-### [Versions History](docs/VERSIONS_HISTORY.md)
+## License
 
-### Powered by:
-  | Product      | Objetive                               |
-  | ------------ | -------------------------------------- |
-  | Python       | Programming language for the Back      |
-  | PHP          | Programming language for the Front-end |
-  | JavaScript   | Programming language for the Front-end |
-  | Bootstrap    | Front-end framework                    |
-  | Admin.LTE    | Bootstrap template                     |
-  | FullCalendar | Calendar component                     |
-  | Sqlite       | DB engine                              |
-  | Lighttpd     | Webserver                              |
-  | arp-scan     | Scan network using arp commands        |
-  | Pi.hole      | DNS Server with Ad-block               |
-  | dnsmasq      | DHCP Server                            |
+GPL 3.0. See [LICENSE.txt](LICENSE.txt).
 
-### License
-  GPL 3.0
-  [Read more here](LICENSE.txt)
+## Attribution
 
-### Contact
-  pi.alert.application@gmail.com
-  
-  ***Suggestions and comments are welcome***
+Pi.NMS is based on the original Pi.Alert project by Puche.
 
-
-<!--- --------------------------------------------------------------------- --->
 [main]:    ./docs/img/1_devices.jpg           "Main screen"
 [screen1]: ./docs/img/2_1_device_details.jpg  "Screen 1"
 [screen2]: ./docs/img/2_2_device_sessions.jpg "Screen 2"
@@ -129,4 +121,3 @@ Linux distributions.
 [screen4]: ./docs/img/3_presence.jpg          "Screen 4"
 [report1]: ./docs/img/4_report_1.jpg          "Report sample 1"
 [report2]: ./docs/img/4_report_2.jpg          "Report sample 2"
-
