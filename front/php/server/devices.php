@@ -1,11 +1,11 @@
 <?php
 //------------------------------------------------------------------------------
-//  Pi.Alert
-//  Open Source Network Guard / WIFI & LAN intrusion detector 
+//  Pi.NMS
+//  Open Source Network Monitoring Solution for ISP/MSP/NOC 
 //
 //  devices.php - Front module. Server side. Manage Devices
 //------------------------------------------------------------------------------
-//  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+//  lruiz9136 2026        pi.alert.application@gmail.com        GNU GPLv3
 //------------------------------------------------------------------------------
 
 
@@ -30,6 +30,7 @@
     switch ($action) {
       case 'getDeviceData':           getDeviceData();                         break;
       case 'setDeviceData':           setDeviceData();                         break;
+      case 'adoptDevice':             adoptDevice();                           break;
       case 'deleteDevice':            deleteDevice();                          break;
  
       case 'getDevicesTotals':        getDevicesTotals();                      break;
@@ -150,6 +151,122 @@ function setDeviceData() {
     echo "Device updated successfully";
   } else {
     echo "Error updating device\n\n$sql \n\n". $db->lastErrorMsg();
+  }
+}
+
+
+//------------------------------------------------------------------------------
+//  Adopt Device
+//------------------------------------------------------------------------------
+function adoptDevice() {
+  global $db;
+
+  $mac = strtoupper (trim ($_REQUEST['mac']));
+  $mac = str_replace ('-', ':', $mac);
+
+  if (!preg_match ('/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/', $mac)) {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => 'Use MAC format AA:BB:CC:DD:EE:FF.'
+    )));
+    return;
+  }
+
+  $result = $db->query ('SELECT COUNT(*) FROM Devices WHERE dev_MAC="'. quotes ($mac) .'"');
+  $row = $result -> fetchArray (SQLITE3_NUM);
+  if ($row[0] > 0) {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => 'This device has already been adopted or discovered.'
+    )));
+    return;
+  }
+
+  $name = trim ($_REQUEST['name']);
+  if ($name == '') {
+    $name = '(unknown)';
+  }
+
+  $ip = trim ($_REQUEST['ip']);
+  if ($ip == '') {
+    $ip = '-';
+  } elseif (filter_var ($ip, FILTER_VALIDATE_IP) === false) {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => 'Use a valid IP address or leave Last IP empty.'
+    )));
+    return;
+  }
+
+  $owner = trim ($_REQUEST['owner']);
+  if ($owner == '') {
+    $owner = '(unknown)';
+  }
+
+  $type = trim ($_REQUEST['type']);
+  $group = trim ($_REQUEST['group']);
+  $location = trim ($_REQUEST['location']);
+  $alertDown = ($_REQUEST['alertdown'] == '1') ? 1 : 0;
+
+  $sql = 'INSERT INTO Devices (
+            dev_MAC,
+            dev_Name,
+            dev_Owner,
+            dev_DeviceType,
+            dev_Vendor,
+            dev_Favorite,
+            dev_Group,
+            dev_Comments,
+            dev_FirstConnection,
+            dev_LastConnection,
+            dev_LastIP,
+            dev_StaticIP,
+            dev_ScanCycle,
+            dev_LogEvents,
+            dev_AlertEvents,
+            dev_AlertDeviceDown,
+            dev_SkipRepeated,
+            dev_PresentLastScan,
+            dev_NewDevice,
+            dev_Location,
+            dev_Archived
+          ) VALUES (
+            "'. quotes ($mac) .'",
+            "'. quotes ($name) .'",
+            "'. quotes ($owner) .'",
+            "'. quotes ($type) .'",
+            "",
+            0,
+            "'. quotes ($group) .'",
+            "Adopted manually",
+            DATETIME("now", "localtime"),
+            DATETIME("now", "localtime"),
+            "'. quotes ($ip) .'",
+            0,
+            1,
+            1,
+            1,
+            '. $alertDown .',
+            0,
+            0,
+            0,
+            "'. quotes ($location) .'",
+            0
+          )';
+
+  $result = $db->query ($sql);
+
+  if ($result == TRUE) {
+    echo (json_encode (array (
+      'success' => true,
+      'message' => 'Device adopted successfully',
+      'mac' => $mac
+    )));
+  } else {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => $db->lastErrorMsg()
+    )));
   }
 }
 
