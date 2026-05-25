@@ -1,11 +1,11 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  pialert_update.sh - Update script
 # ------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026        pi.alert.application@gmail.com        GNU GPLv3
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
@@ -15,6 +15,10 @@ INSTALL_DIR=~
 PIALERT_HOME="$INSTALL_DIR/pialert"
 LOG="pialert_update_`date +"%Y-%m-%d_%H-%M"`.log"
 PYTHON_BIN=python
+PINMS_REPO="${PINMS_REPO:-lruiz9136/Pi.NMS}"
+PINMS_BRANCH="${PINMS_BRANCH:-main}"
+PINMS_ARCHIVE_URL="${PINMS_ARCHIVE_URL:-https://github.com/$PINMS_REPO/archive/refs/heads/$PINMS_BRANCH.tar.gz}"
+PINMS_ARCHIVE="$INSTALL_DIR/pinms_latest.tar.gz"
 
 
 # ------------------------------------------------------------------------------
@@ -103,28 +107,58 @@ check_packages() {
 
 
 # ------------------------------------------------------------------------------
-# Download and uncompress Pi.Alert
+# Download and uncompress Pi.NMS
 # ------------------------------------------------------------------------------
 download_pialert() {
-  if [ -f "$INSTALL_DIR/pialert_latest.tar" ] ; then
-    print_msg "- Deleting previous downloaded tar file"
-    rm -r "$INSTALL_DIR/pialert_latest.tar"
+  if [ -f "$PINMS_ARCHIVE" ] ; then
+    print_msg "- Deleting previous downloaded archive"
+    rm -r "$PINMS_ARCHIVE"
   fi
   
-  print_msg "- Downloading update file..."
-  curl -Lo "$INSTALL_DIR/pialert_latest.tar" https://github.com/pucherot/Pi.Alert/raw/main/tar/pialert_latest.tar
+  print_msg "- Downloading Pi.NMS from $PINMS_REPO ($PINMS_BRANCH)..."
+  curl -L -o "$PINMS_ARCHIVE" "$PINMS_ARCHIVE_URL"
   echo ""
 
-  print_msg "- Uncompressing tar file"
-  tar xf "$INSTALL_DIR/pialert_latest.tar" -C "$INSTALL_DIR" \
-    --exclude='pialert/config/pialert.conf' \
-    --exclude='pialert/db/pialert.db' \
-    --exclude='pialert/log/*'  \
-    --checkpoint=100 --checkpoint-action="ttyout=."               2>&1 >> "$LOG"
+  print_msg "- Uncompressing source archive"
+  TMP_DIR=`mktemp -d`
+  tar xzf "$PINMS_ARCHIVE" -C "$TMP_DIR" --checkpoint=100 --checkpoint-action="ttyout=."  2>&1 >> "$LOG"
   echo ""
 
-  print_msg "- Deleting downloaded tar file..."
-  rm -r "$INSTALL_DIR/pialert_latest.tar"
+  SOURCE_DIR=`find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1`
+  if [ "$SOURCE_DIR" = "" ] ; then
+    process_error "Downloaded Pi.NMS archive did not contain a source directory"
+  fi
+
+  print_msg "- Installing updated Pi.NMS files..."
+  cp -a "$SOURCE_DIR/back" "$PIALERT_HOME/"                         2>&1 >> "$LOG"
+  cp -a "$SOURCE_DIR/docs" "$PIALERT_HOME/"                         2>&1 >> "$LOG"
+  cp -a "$SOURCE_DIR/front" "$PIALERT_HOME/"                        2>&1 >> "$LOG"
+  cp -a "$SOURCE_DIR/install" "$PIALERT_HOME/"                      2>&1 >> "$LOG"
+  cp -a "$SOURCE_DIR/LICENSE.txt" "$PIALERT_HOME/"                  2>&1 >> "$LOG"
+  cp -a "$SOURCE_DIR/README.md" "$PIALERT_HOME/"                    2>&1 >> "$LOG"
+  if [ -f "$SOURCE_DIR/ROADMAP.md" ] ; then
+    cp -a "$SOURCE_DIR/ROADMAP.md" "$PIALERT_HOME/"                 2>&1 >> "$LOG"
+  fi
+  cp -a "$SOURCE_DIR/config/version.conf" "$PIALERT_HOME/config/"   2>&1 >> "$LOG"
+
+  verify_pialert_source
+
+  print_msg "- Deleting downloaded archive..."
+  rm -r "$PINMS_ARCHIVE"
+  rm -r "$TMP_DIR"
+}
+
+# ------------------------------------------------------------------------------
+# Verify installed source
+# ------------------------------------------------------------------------------
+verify_pialert_source() {
+  if [ ! -f "$PIALERT_HOME/front/php/templates/header.php" ] ; then
+    process_error "Pi.NMS web files were not installed correctly"
+  fi
+
+  if ! grep -Fq "Pi.NMS" "$PIALERT_HOME/README.md" ; then
+    process_error "Downloaded source does not appear to be Pi.NMS. Check PINMS_REPO, PINMS_BRANCH, or PINMS_ARCHIVE_URL."
+  fi
 }
 
 # ------------------------------------------------------------------------------

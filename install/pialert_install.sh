@@ -16,6 +16,10 @@
   
   INSTALL_DIR=~
   PIALERT_HOME="$INSTALL_DIR/pialert"
+  PINMS_REPO="${PINMS_REPO:-lruiz9136/Pi.NMS}"
+  PINMS_BRANCH="${PINMS_BRANCH:-main}"
+  PINMS_ARCHIVE_URL="${PINMS_ARCHIVE_URL:-https://github.com/$PINMS_REPO/archive/refs/heads/$PINMS_BRANCH.tar.gz}"
+  PINMS_ARCHIVE="$INSTALL_DIR/pinms_latest.tar.gz"
   
   LIGHTTPD_CONF_DIR="/etc/lighttpd"
   WEBROOT="/var/www/html"
@@ -445,24 +449,40 @@ install_pialert() {
 
 
 # ------------------------------------------------------------------------------
-# Download and uncompress Pi.Alert
+# Download and uncompress Pi.NMS
 # ------------------------------------------------------------------------------
 download_pialert() {
-  if [ -f "$INSTALL_DIR/pialert_latest.tar" ] ; then
-    print_msg "- Deleting previous downloaded tar file"
-    rm -r "$INSTALL_DIR/pialert_latest.tar"
+  if [ -f "$PINMS_ARCHIVE" ] ; then
+    print_msg "- Deleting previous downloaded archive"
+    rm -r "$PINMS_ARCHIVE"
   fi
   
-  print_msg "- Downloading installation tar file..."
-  curl -Lo "$INSTALL_DIR/pialert_latest.tar" https://github.com/pucherot/Pi.Alert/raw/main/tar/pialert_latest.tar
+  print_msg "- Downloading Pi.NMS from $PINMS_REPO ($PINMS_BRANCH)..."
+  curl -L -o "$PINMS_ARCHIVE" "$PINMS_ARCHIVE_URL"
   echo ""
 
-  print_msg "- Uncompressing tar file"
-  tar xf "$INSTALL_DIR/pialert_latest.tar" -C "$INSTALL_DIR" --checkpoint=100 --checkpoint-action="ttyout=."  2>&1 >> "$LOG"
+  print_msg "- Uncompressing source archive"
+  mkdir -p "$PIALERT_HOME"
+  tar xzf "$PINMS_ARCHIVE" -C "$PIALERT_HOME" --strip-components=1 --checkpoint=100 --checkpoint-action="ttyout=."  2>&1 >> "$LOG"
   echo ""
 
-  print_msg "- Deleting downloaded tar file..."
-  rm -r "$INSTALL_DIR/pialert_latest.tar"
+  verify_pialert_source
+
+  print_msg "- Deleting downloaded archive..."
+  rm -r "$PINMS_ARCHIVE"
+}
+
+# ------------------------------------------------------------------------------
+# Verify installed source
+# ------------------------------------------------------------------------------
+verify_pialert_source() {
+  if [ ! -f "$PIALERT_HOME/front/php/templates/header.php" ] ; then
+    process_error "Pi.NMS web files were not installed correctly"
+  fi
+
+  if ! grep -Fq "Pi.NMS" "$PIALERT_HOME/README.md" ; then
+    process_error "Downloaded source does not appear to be Pi.NMS. Check PINMS_REPO, PINMS_BRANCH, or PINMS_ARCHIVE_URL."
+  fi
 }
 
 

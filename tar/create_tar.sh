@@ -1,25 +1,33 @@
 #!/bin/sh
 # ------------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  create_tar.sh - Create the tar file for installation
 # ------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026        pi.alert.application@gmail.com        GNU GPLv3
 # ------------------------------------------------------------------------------
 
-PIALERT_DEV_PATH=/media/WD_4TB/dev
-cd $PIALERT_DEV_PATH
+SCRIPT_DIR=`CDPATH= cd -- "$(dirname -- "$0")" && pwd`
+PROJECT_DIR=`CDPATH= cd -- "$SCRIPT_DIR/.." && pwd`
+PROJECT_NAME=`basename "$PROJECT_DIR"`
+
+cd "$PROJECT_DIR"
 pwd
-PIALERT_VERSION=`awk '$1=="VERSION" { print $3 }' pialert/config/version.conf | tr -d \'`
+PIALERT_VERSION=`awk '$1=="VERSION" { print $3 }' config/version.conf | tr -d \'`
 
 # ------------------------------------------------------------------------------
-ls -l pialert/tar/pialert*.tar
-tar tvf pialert/tar/pialert_latest.tar | wc -l
-rm pialert/tar/pialert_*.tar
+ls -l tar/pialert*.tar 2>/dev/null || :
+tar tvf tar/pialert_latest.tar 2>/dev/null | wc -l
+rm tar/pialert_*.tar 2>/dev/null || :
+rm tar/pialert_latest.tar 2>/dev/null || :
 
 # ------------------------------------------------------------------------------
-tar cvf pialert/tar/pialert_$PIALERT_VERSION.tar --exclude="pialert/tar" --exclude="pialert/.git" pialert | wc -l
+tar cvf "tar/pialert_$PIALERT_VERSION.tar" \
+  --exclude="$PROJECT_NAME/tar" \
+  --exclude="$PROJECT_NAME/.git" \
+  --transform "s|^$PROJECT_NAME|pialert|" \
+  -C "`dirname "$PROJECT_DIR"`" "$PROJECT_NAME" | wc -l
 
-ln -s pialert_$PIALERT_VERSION.tar pialert/tar/pialert_latest.tar
-ls -l pialert/tar/pialert*.tar
+ln -s "pialert_$PIALERT_VERSION.tar" tar/pialert_latest.tar
+ls -l tar/pialert*.tar
