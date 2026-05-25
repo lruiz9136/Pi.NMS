@@ -467,6 +467,7 @@ download_pialert() {
   echo ""
 
   verify_pialert_source
+  write_source_metadata
 
   print_msg "- Deleting downloaded archive..."
   rm -r "$PINMS_ARCHIVE"
@@ -483,6 +484,25 @@ verify_pialert_source() {
   if ! grep -Fq "Pi.NMS" "$PIALERT_HOME/README.md" ; then
     process_error "Downloaded source does not appear to be Pi.NMS. Check PINMS_REPO, PINMS_BRANCH, or PINMS_ARCHIVE_URL."
   fi
+}
+
+# ------------------------------------------------------------------------------
+# Write source metadata
+# ------------------------------------------------------------------------------
+write_source_metadata() {
+  SOURCE_COMMIT=`curl -fsSL "https://api.github.com/repos/$PINMS_REPO/commits/$PINMS_BRANCH" | sed -n 's/.*"sha": *"\([^"]*\)".*/\1/p' | head -n 1`
+  if [ "$SOURCE_COMMIT" = "" ] ; then
+    SOURCE_COMMIT="unknown"
+  fi
+
+  cat > "$PIALERT_HOME/config/source.conf" <<EOF
+# Pi.NMS source metadata
+SOURCE_REPO='$PINMS_REPO'
+SOURCE_BRANCH='$PINMS_BRANCH'
+SOURCE_ARCHIVE_URL='$PINMS_ARCHIVE_URL'
+SOURCE_COMMIT='$SOURCE_COMMIT'
+SOURCE_INSTALLED_AT='`date -u +"%Y-%m-%dT%H:%M:%SZ"`'
+EOF
 }
 
 
