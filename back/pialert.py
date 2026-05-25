@@ -261,7 +261,16 @@ def update_devices_MAC_vendors (pArg = ''):
     # Update vendors DB (iab oui)
     print ('\nUpdating vendors DB (iab & oui)...')
     update_args = ['sh', PIALERT_BACK_PATH + '/update_vendors.sh', pArg]
-    update_output = subprocess.check_output (update_args)
+    try:
+        update_output = subprocess.check_output (update_args, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        print ('    Vendor DB update warning: update helper exited with status ' + str(e.returncode))
+        print ('    Continuing with the existing vendor database.')
+        if e.output:
+            try:
+                print (e.output.decode('utf-8', errors='replace'))
+            except AttributeError:
+                print (e.output)
     # DEBUG
         # update_args = ['./vendors_db_update.sh']
         # subprocess.call (update_args, shell=True)
@@ -466,7 +475,7 @@ def execute_arpscan (pRetries):
     re_ip = r'(?P<ip>((2[0-5]|1[0-9]|[0-9])?[0-9]\.){3}((2[0-5]|1[0-9]|[0-9])?[0-9]))'
     re_mac = r'(?P<mac>([0-9a-fA-F]{2}[:-]){5}([0-9a-fA-F]{2}))'
     re_hw = r'(?P<hw>.*)'
-    re_pattern = re.compile (re_ip + '\s+' + re_mac + '\s' + re_hw)
+    re_pattern = re.compile (re_ip + r'\s+' + re_mac + r'\s' + re_hw)
 
     # Create Userdict of devices
     devices_list = [device.groupdict()
