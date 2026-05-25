@@ -1,10 +1,10 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
-#  Open Source Network Guard / WIFI & LAN intrusion detector 
+#  Pi.NMS
+#  Open Source Network Monitoring Solution for ISP/MSP/NOC 
 #
 #  devices.php - Front module. Devices list page
 #-------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026        pi.alert.application@gmail.com        GNU GPLv3
 #--------------------------------------------------------------------------- -->
 
 <?php
@@ -16,6 +16,8 @@
 
 <!-- Content header--------------------------------------------------------- -->
     <section class="content-header">
+      <?php require 'php/templates/notification.php'; ?>
+
       <h1 id="pageTitle">
          Devices
       </h1>
@@ -103,6 +105,9 @@
             <!-- box-header -->
             <div class="box-header">
               <h3 id="tableDevicesTitle" class="box-title text-gray">Devices</h3>
+              <button type="button" class="btn btn-primary pull-right" onclick="showAdoptDeviceModal()">
+                <i class="fa fa-plus"></i> Adopt Device
+              </button>
             </div>
 
             <!-- table -->
@@ -141,6 +146,89 @@
     <!-- /.content -->
   </div>
   <!-- /.content-wrapper -->
+
+<!-- adopt device modal ---------------------------------------------------- -->
+  <div class="modal fade" id="modal-adopt-device" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-content">
+
+        <div class="modal-header" style="background-color: #d0d0d0;">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title">Adopt Device</h4>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-horizontal">
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">MAC</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="adoptMAC" type="text" placeholder="AA:BB:CC:DD:EE:FF">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">Name</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="adoptName" type="text" placeholder="Device name">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">Last IP</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="adoptIP" type="text" placeholder="192.168.1.10">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">Owner</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="adoptOwner" type="text" placeholder="Owner">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">Type</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="adoptType" type="text" placeholder="Router, Server, AP, Camera">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">Group</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="adoptGroup" type="text" placeholder="Always on">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">Location</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="adoptLocation" type="text" placeholder="Rack, Office, Garage">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label">Alert Down</label>
+              <div class="col-sm-9" style="padding-top:6px;">
+                <input id="adoptAlertDown" type="checkbox" checked>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="adoptDevice()">Adopt</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
 
 
 <!-- ----------------------------------------------------------------------- -->
@@ -338,5 +426,55 @@ function getDevicesList (status) {
   $('#tableDevices').DataTable().ajax.url(
     'php/server/devices.php?action=getDevicesList&status=' + deviceStatus).load();
 };
+
+
+// -----------------------------------------------------------------------------
+function showAdoptDeviceModal () {
+  $('#adoptMAC').val('');
+  $('#adoptName').val('');
+  $('#adoptIP').val('');
+  $('#adoptOwner').val('');
+  $('#adoptType').val('');
+  $('#adoptGroup').val('Always on');
+  $('#adoptLocation').val('');
+  $('#adoptAlertDown').prop('checked', true);
+  $('#modal-adopt-device').modal('show');
+  window.setTimeout(function() { $('#adoptMAC').focus(); }, 300);
+}
+
+
+// -----------------------------------------------------------------------------
+function adoptDevice () {
+  var mac = $('#adoptMAC').val().trim();
+
+  if (mac == '') {
+    showMessage('Error: MAC address is required to adopt a device.');
+    return;
+  }
+
+  $.get('php/server/devices.php?action=adoptDevice'
+    + '&mac='       + encodeURIComponent(mac)
+    + '&name='      + encodeURIComponent($('#adoptName').val())
+    + '&ip='        + encodeURIComponent($('#adoptIP').val())
+    + '&owner='     + encodeURIComponent($('#adoptOwner').val())
+    + '&type='      + encodeURIComponent($('#adoptType').val())
+    + '&group='     + encodeURIComponent($('#adoptGroup').val())
+    + '&location='  + encodeURIComponent($('#adoptLocation').val())
+    + '&alertdown=' + ($('#adoptAlertDown').is(':checked') ? '1' : '0'),
+    function(response) {
+      var result = JSON.parse(response);
+
+      if (result.success == true) {
+        $('#modal-adopt-device').modal('hide');
+        showMessage(result.message);
+        getDevicesTotals();
+        getDevicesList(deviceStatus);
+        window.location.href = 'deviceDetails.php?mac=' + encodeURIComponent(result.mac);
+      } else {
+        showMessage('Error: ' + result.message);
+      }
+    }
+  );
+}
 
 </script>
