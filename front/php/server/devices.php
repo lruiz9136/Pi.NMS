@@ -479,14 +479,16 @@ function getOwners() {
   $sql = 'SELECT DISTINCT 1 as dev_Order, dev_Owner
           FROM Devices
           WHERE dev_Owner <> "(unknown)" AND dev_Owner <> ""
+            AND dev_MAC <> "Internet"
             AND dev_Favorite = 1
         UNION
           SELECT DISTINCT 2 as dev_Order, dev_Owner
           FROM Devices
           WHERE dev_Owner <> "(unknown)" AND dev_Owner <> ""
+            AND dev_MAC <> "Internet"
             AND dev_Favorite = 0
             AND dev_Owner NOT IN
-               (SELECT dev_Owner FROM Devices WHERE dev_Favorite = 1)
+               (SELECT dev_Owner FROM Devices WHERE dev_Favorite = 1 AND dev_MAC <> "Internet")
         ORDER BY 1,2 ';
   $result = $db->query($sql);
 
@@ -517,6 +519,7 @@ function getDeviceTypes() {
                  "Game Console", "SmartTV", "TV Decoder", "Virtual Assistance",
                  "Clock", "House Appliance", "Phone", "Radio",
                  "AP", "NAS", "PLC", "Router")
+            AND dev_MAC <> "Internet"
 
           UNION SELECT 1 as dev_Order, "Smartphone"
           UNION SELECT 1 as dev_Order, "Tablet"
@@ -573,6 +576,7 @@ function getGroups() {
   $sql = 'SELECT DISTINCT 1 as dev_Order, dev_Group
           FROM Devices
           WHERE dev_Group NOT IN ("(unknown)", "Others") AND dev_Group <> ""
+            AND dev_MAC <> "Internet"
           UNION SELECT 1 as dev_Order, "Always on"
           UNION SELECT 1 as dev_Order, "Friends"
           UNION SELECT 1 as dev_Order, "Personal"
@@ -602,6 +606,7 @@ function getLocations() {
   $sql = 'SELECT DISTINCT 9 as dev_Order, dev_Location
           FROM Devices
           WHERE dev_Location <> ""
+            AND dev_MAC <> "Internet"
             AND dev_Location NOT IN (
                 "Bathroom", "Bedroom", "Dining room", "Hallway",
                 "Kitchen", "Laundry", "Living room", "Study", 
@@ -649,15 +654,17 @@ function getLocations() {
 //  Status Where conditions
 //------------------------------------------------------------------------------
 function getDeviceCondition ($deviceStatus) {
+  $inventoryOnly = 'dev_MAC<>"Internet"';
+
   switch ($deviceStatus) {
-    case 'all':        return 'WHERE dev_Archived=0';                                                      break;
-    case 'connected':  return 'WHERE dev_Archived=0 AND dev_PresentLastScan=1';                            break;
-    case 'favorites':  return 'WHERE dev_Archived=0 AND dev_Favorite=1';                                   break;
-    case 'new':        return 'WHERE dev_Archived=0 AND dev_NewDevice=1';                                  break;
-    case 'down':       return 'WHERE dev_Archived=0 AND dev_AlertDeviceDown=1 AND dev_PresentLastScan=0';  break;
-    case 'adopted':    return 'WHERE dev_Archived=0 AND dev_Source="adopted"';                             break;
-    case 'discovered': return 'WHERE dev_Archived=0 AND dev_Source="discovered"';                          break;
-    case 'archived':   return 'WHERE dev_Archived=1';                                                      break;
+    case 'all':        return 'WHERE '. $inventoryOnly .' AND dev_Archived=0';                                                     break;
+    case 'connected':  return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_PresentLastScan=1';                           break;
+    case 'favorites':  return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_Favorite=1';                                  break;
+    case 'new':        return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_NewDevice=1';                                 break;
+    case 'down':       return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_AlertDeviceDown=1 AND dev_PresentLastScan=0'; break;
+    case 'adopted':    return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_Source="adopted"';                            break;
+    case 'discovered': return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_Source="discovered"';                         break;
+    case 'archived':   return 'WHERE '. $inventoryOnly .' AND dev_Archived=1';                                                     break;
     default:           return 'WHERE 1=0';                                                                 break;
   }
 }
