@@ -1,6 +1,6 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.NMS v1.0
-#  Open Source Network Monitoring Solution for ISP/MSP/NOC
+#  Pi.NMS
+#  Open Source Network Monitoring Solution for ISP/MSP/NOC 
 #
 #  devices.php - Front module. Devices list page
 #-------------------------------------------------------------------------------
@@ -357,7 +357,13 @@ function initializeDatatable () {
             default:           color='gray';   label='Unknown';    break;
           };
 
-          $(td).html ('<span class="badge bg-'+ color +'">'+ label +'</span>');
+          sourceHtml = '<span class="badge bg-'+ color +'">'+ label +'</span>';
+          if (cellData == 'discovered') {
+            sourceHtml += ' <button type="button" class="btn btn-xs btn-success" onclick="adoptDiscoveredDevice(\''+ rowData[11] +'\')"><i class="fa fa-check"></i></button>';
+            sourceHtml += ' <button type="button" class="btn btn-xs btn-default" onclick="ignoreDiscoveredDevice(\''+ rowData[11] +'\')"><i class="fa fa-times"></i></button>';
+          }
+
+          $(td).html (sourceHtml);
       } },
 
       // Status color
@@ -493,6 +499,45 @@ function adoptDevice () {
         getDevicesTotals();
         getDevicesList(deviceStatus);
         window.location.href = 'deviceDetails.php?mac=' + encodeURIComponent(result.mac);
+      } else {
+        showMessage('Error: ' + result.message);
+      }
+    }
+  );
+}
+
+
+// -----------------------------------------------------------------------------
+function adoptDiscoveredDevice (mac) {
+  $.get('php/server/devices.php?action=adoptDevice'
+    + '&mac='       + encodeURIComponent(mac)
+    + '&alertdown=' + ($('#adoptAlertDown').is(':checked') ? '1' : '0'),
+    function(response) {
+      var result = JSON.parse(response);
+
+      if (result.success == true) {
+        showMessage(result.message);
+        getDevicesTotals();
+        getDevicesList(deviceStatus);
+      } else {
+        showMessage('Error: ' + result.message);
+      }
+    }
+  );
+}
+
+
+// -----------------------------------------------------------------------------
+function ignoreDiscoveredDevice (mac) {
+  $.get('php/server/devices.php?action=ignoreDiscoveredDevice'
+    + '&mac=' + encodeURIComponent(mac),
+    function(response) {
+      var result = JSON.parse(response);
+
+      if (result.success == true) {
+        showMessage(result.message);
+        getDevicesTotals();
+        getDevicesList(deviceStatus);
       } else {
         showMessage('Error: ' + result.message);
       }

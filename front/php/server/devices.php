@@ -31,6 +31,7 @@
       case 'getDeviceData':           getDeviceData();                         break;
       case 'setDeviceData':           setDeviceData();                         break;
       case 'adoptDevice':             adoptDevice();                           break;
+      case 'ignoreDiscoveredDevice':  ignoreDiscoveredDevice();                break;
       case 'deleteDevice':            deleteDevice();                          break;
  
       case 'getDevicesTotals':        getDevicesTotals();                      break;
@@ -172,12 +173,32 @@ function adoptDevice() {
     return;
   }
 
-  $result = $db->query ('SELECT COUNT(*) FROM Devices WHERE dev_MAC="'. quotes ($mac) .'"');
-  $row = $result -> fetchArray (SQLITE3_NUM);
-  if ($row[0] > 0) {
+  $result = $db->query ('SELECT dev_Source FROM Devices WHERE dev_MAC="'. quotes ($mac) .'"');
+  $row = $result -> fetchArray (SQLITE3_ASSOC);
+  if ($row != false) {
+    if ($row['dev_Source'] == 'discovered') {
+      $alertDown = (isset ($_REQUEST['alertdown']) && $_REQUEST['alertdown'] == '1') ? 1 : 0;
+      $sql = 'UPDATE Devices SET
+                     dev_Source          = "adopted",
+                     dev_AlertEvents     = 1,
+                     dev_AlertDeviceDown = '. $alertDown .',
+                     dev_NewDevice       = 0,
+                     dev_Archived        = 0
+              WHERE dev_MAC="'. quotes ($mac) .'"
+                AND dev_Source="discovered"';
+      $result = $db->query ($sql);
+
+      echo (json_encode (array (
+        'success' => ($result == TRUE),
+        'message' => ($result == TRUE ? 'Device adopted successfully' : $db->lastErrorMsg()),
+        'mac' => $mac
+      )));
+      return;
+    }
+
     echo (json_encode (array (
       'success' => false,
-      'message' => 'This device has already been adopted or discovered.'
+      'message' => 'This device has already been adopted.'
     )));
     return;
   }
@@ -268,6 +289,46 @@ function adoptDevice() {
     echo (json_encode (array (
       'success' => false,
       'message' => $db->lastErrorMsg()
+    )));
+  }
+}
+
+
+//------------------------------------------------------------------------------
+//  Ignore Discovered Device
+//------------------------------------------------------------------------------
+function ignoreDiscoveredDevice() {
+  global $db;
+
+  $mac = strtoupper (trim ($_REQUEST['mac']));
+  $mac = str_replace ('-', ':', $mac);
+
+  if (!preg_match ('/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/', $mac)) {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => 'Use MAC format AA:BB:CC:DD:EE:FF.'
+    )));
+    return;
+  }
+
+  $sql = 'DELETE FROM Devices
+          WHERE dev_MAC="'. quotes ($mac) .'"
+            AND dev_Source="discovered"';
+  $result = $db->query ($sql);
+  $removed = $db->changes();
+
+  if ($result == TRUE && $removed > 0) {
+    $db->query ('UPDATE Events SET eve_PendingAlertEmail=0
+                 WHERE eve_MAC="'. quotes ($mac) .'"
+                   AND eve_EventType="New Device"');
+    echo (json_encode (array (
+      'success' => true,
+      'message' => 'Discovered device ignored until the next discovery cycle.'
+    )));
+  } else {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => 'Only discovered devices can be ignored this way.'
     )));
   }
 }
