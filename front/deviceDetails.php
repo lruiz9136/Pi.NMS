@@ -1,10 +1,10 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
-#  Open Source Network Guard / WIFI & LAN intrusion detector 
+#  Pi.NMS v1.0
+#  Open Source Network Monitoring Solution for ISP/MSP/NOC
 #
 #  deviceDetails.php - Front module. Device management page
 #-------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026                GNU GPLv3
 #--------------------------------------------------------------------------- -->
 
 <?php
@@ -260,6 +260,14 @@
                         <label class="col-sm-5 control-label">Status</label>
                         <div class="col-sm-7">
                           <input class="form-control" id="txtStatus" type="text" readonly value="--">
+                        </div>
+                      </div>
+
+                      <!-- Source -->
+                      <div class="form-group">
+                        <label class="col-sm-5 control-label">Source</label>
+                        <div class="col-sm-7">
+                          <input class="form-control" id="txtSource" type="text" readonly value="--">
                         </div>
                       </div>
       
@@ -1073,6 +1081,7 @@ function getDeviceData (readAllData=false) {
         $('#txtLastConnection').val                  (deviceData['dev_LastConnection']);
         $('#txtLastIP').val                          (deviceData['dev_LastIP']);
         $('#txtStatus').val                          (deviceData['dev_Status']);
+        $('#txtSource').val                          (formatDeviceSource (deviceData['dev_Source']));
         if (deviceData['dev_StaticIP'] == 1)         {$('#chkStaticIP').iCheck('check');}    else {$('#chkStaticIP').iCheck('uncheck');}
     
         $('#txtScanCycle').val                       (deviceData['dev_ScanCycle'] +' min');
@@ -1155,6 +1164,16 @@ function nextRecord () {
     pos++;
     mac = devicesList[pos].toString();
     getDeviceData (true);
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+function formatDeviceSource (source) {
+  switch (source) {
+    case 'adopted':    return 'Adopted';
+    case 'discovered': return 'Discovered';
+    default:           return 'Unknown';
   }
 }
 

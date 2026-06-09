@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 #
 #-------------------------------------------------------------------------------
-#  Pi.Alert  v2.70  /  2021-02-01
-#  Open Source Network Guard / WIFI & LAN intrusion detector 
+#  Pi.NMS v1.0
+#  Open Source Network Monitoring Solution for ISP/MSP/NOC
 #
 #  pialert.py - Back module. Network scanner
 #-------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026                GNU GPLv3
 #-------------------------------------------------------------------------------
 
 
@@ -716,9 +716,9 @@ def create_new_devices ():
     sql.execute ("""INSERT INTO Devices (dev_MAC, dev_name, dev_Vendor,
                         dev_LastIP, dev_FirstConnection, dev_LastConnection,
                         dev_ScanCycle, dev_AlertEvents, dev_AlertDeviceDown,
-                        dev_PresentLastScan)
+                        dev_PresentLastScan, dev_Source)
                     SELECT cur_MAC, '(unknown)', cur_Vendor, cur_IP, ?, ?,
-                        1, 1, 0, 1
+                        1, 1, 0, 1, 'discovered'
                     FROM CurrentScan
                     WHERE cur_ScanCycle = ? 
                       AND NOT EXISTS (SELECT 1 FROM Devices
@@ -745,9 +745,9 @@ def create_new_devices ():
     sql.execute ("""INSERT INTO Devices (dev_MAC, dev_name, dev_Vendor,
                         dev_LastIP, dev_FirstConnection, dev_LastConnection,
                         dev_ScanCycle, dev_AlertEvents, dev_AlertDeviceDown,
-                        dev_PresentLastScan)
+                        dev_PresentLastScan, dev_Source)
                     SELECT PH_MAC, PH_Name, PH_Vendor, IFNULL (PH_IP,'-'),
-                        ?, ?, 1, 1, 0, 1
+                        ?, ?, 1, 1, 0, 1, 'discovered'
                     FROM PiHole_Network
                     WHERE NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = PH_MAC) """,
@@ -775,7 +775,7 @@ def create_new_devices ():
     sql.execute ("""INSERT INTO Devices (dev_MAC, dev_name, dev_LastIP, 
                         dev_Vendor, dev_FirstConnection, dev_LastConnection,
                         dev_ScanCycle, dev_AlertEvents, dev_AlertDeviceDown,
-                        dev_PresentLastScan)
+                        dev_PresentLastScan, dev_Source)
                     SELECT DISTINCT DHCP_MAC,
                         (SELECT DHCP_Name FROM DHCP_Leases AS D2
                          WHERE D2.DHCP_MAC = D1.DHCP_MAC
@@ -783,7 +783,7 @@ def create_new_devices ():
                         (SELECT DHCP_IP FROM DHCP_Leases AS D2
                          WHERE D2.DHCP_MAC = D1.DHCP_MAC
                          ORDER BY DHCP_DateTime DESC LIMIT 1),
-                        '(unknown)', ?, ?, 1, 1, 0, 1
+                        '(unknown)', ?, ?, 1, 1, 0, 1, 'discovered'
                     FROM DHCP_Leases AS D1
                     WHERE NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = DHCP_MAC) """,
@@ -1448,6 +1448,16 @@ def openDB ():
     sql_connection.text_factory = str
     sql_connection.row_factory = sqlite3.Row
     sql = sql_connection.cursor()
+    ensure_device_source_column()
+
+#-------------------------------------------------------------------------------
+def ensure_device_source_column ():
+    sql.execute ("PRAGMA table_info(Devices)")
+    columns = [row['name'] for row in sql.fetchall()]
+    if 'dev_Source' not in columns:
+        sql.execute ("""ALTER TABLE Devices
+                        ADD COLUMN dev_Source STRING (20)
+                        NOT NULL DEFAULT 'discovered' """)
 
 #-------------------------------------------------------------------------------
 def closeDB ():

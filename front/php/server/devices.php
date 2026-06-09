@@ -229,6 +229,7 @@ function adoptDevice() {
             dev_PresentLastScan,
             dev_NewDevice,
             dev_Location,
+            dev_Source,
             dev_Archived
           ) VALUES (
             "'. quotes ($mac) .'",
@@ -251,6 +252,7 @@ function adoptDevice() {
             0,
             0,
             "'. quotes ($location) .'",
+            "adopted",
             0
           )';
 
@@ -361,6 +363,7 @@ function getDevicesList() {
                                   formatDate ($row['dev_LastConnection']),
                                   $row['dev_LastIP'],
                                   ( in_array($row['dev_MAC'][1], array("2","6","A","E","a","e")) ? 1 : 0),
+                                  $row['dev_Source'],
                                   $row['dev_Status'],
                                   $row['dev_MAC'], // MAC (hidden)
                                   formatIPlong ($row['dev_LastIP']), // IP orderable
@@ -591,6 +594,8 @@ function getDeviceCondition ($deviceStatus) {
     case 'favorites':  return 'WHERE dev_Archived=0 AND dev_Favorite=1';                                   break;
     case 'new':        return 'WHERE dev_Archived=0 AND dev_NewDevice=1';                                  break;
     case 'down':       return 'WHERE dev_Archived=0 AND dev_AlertDeviceDown=1 AND dev_PresentLastScan=0';  break;
+    case 'adopted':    return 'WHERE dev_Archived=0 AND dev_Source="adopted"';                             break;
+    case 'discovered': return 'WHERE dev_Archived=0 AND dev_Source="discovered"';                          break;
     case 'archived':   return 'WHERE dev_Archived=1';                                                      break;
     default:           return 'WHERE 1=0';                                                                 break;
   }

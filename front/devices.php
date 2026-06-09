@@ -1,6 +1,6 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.NMS
-#  Open Source Network Monitoring Solution for ISP/MSP/NOC 
+#  Pi.NMS v1.0
+#  Open Source Network Monitoring Solution for ISP/MSP/NOC
 #
 #  devices.php - Front module. Devices list page
 #-------------------------------------------------------------------------------
@@ -108,6 +108,14 @@
               <button type="button" class="btn btn-primary pull-right" onclick="showAdoptDeviceModal()">
                 <i class="fa fa-plus"></i> Adopt Device
               </button>
+              <div class="btn-group pull-right" style="margin-right: 8px;">
+                <button type="button" class="btn btn-default" onclick="getDevicesList('adopted')">
+                  <i class="fa fa-check-circle"></i> Adopted
+                </button>
+                <button type="button" class="btn btn-default" onclick="getDevicesList('discovered')">
+                  <i class="fa fa-search"></i> Discovered
+                </button>
+              </div>
             </div>
 
             <!-- table -->
@@ -124,6 +132,7 @@
                   <th>Last Session</th>
                   <th>Last IP</th>
                   <th>MAC</th>
+                  <th>Source</th>
                   <th>Status</th>
                   <th>MAC</th>
                   <th>Last IP Order</th>
@@ -301,16 +310,16 @@ function initializeDatatable () {
     // 'order'       : [[3,'desc'], [0,'asc']],
 
     'columnDefs'   : [
-      {visible:   false,         targets: [10, 11, 12] },
-      {className: 'text-center', targets: [3, 8, 9] },
+      {visible:   false,         targets: [11, 12, 13] },
+      {className: 'text-center', targets: [3, 8, 9, 10] },
       {width:     '80px',        targets: [5, 6] },
-      {width:     '0px',         targets: 9 },
-      {orderData: [11],          targets: 7 },
+      {width:     '0px',         targets: 10 },
+      {orderData: [12],          targets: 7 },
 
       // Device Name
       {targets: [0],
         'createdCell': function (td, cellData, rowData, row, col) {
-            $(td).html ('<b><a href="deviceDetails.php?mac='+ rowData[10] +'" class="">'+ cellData +'</a></b>');
+            $(td).html ('<b><a href="deviceDetails.php?mac='+ rowData[11] +'" class="">'+ cellData +'</a></b>');
       } },
 
       // Favorite
@@ -339,8 +348,20 @@ function initializeDatatable () {
           }
       } },
 
-      // Status color
+      // Source badge
       {targets: [9],
+        'createdCell': function (td, cellData, rowData, row, col) {
+          switch (cellData) {
+            case 'adopted':    color='purple'; label='Adopted';    break;
+            case 'discovered': color='blue';   label='Discovered'; break;
+            default:           color='gray';   label='Unknown';    break;
+          };
+
+          $(td).html ('<span class="badge bg-'+ color +'">'+ label +'</span>');
+      } },
+
+      // Status color
+      {targets: [10],
         'createdCell': function (td, cellData, rowData, row, col) {
           switch (cellData) {
             case 'Down':      color='red';              break;
@@ -351,7 +372,7 @@ function initializeDatatable () {
             default:          color='aqua';             break;
           };
       
-          $(td).html ('<a href="deviceDetails.php?mac='+ rowData[10] +'" class="badge bg-'+ color +'">'+ cellData +'</a>');
+          $(td).html ('<a href="deviceDetails.php?mac='+ rowData[11] +'" class="badge bg-'+ color +'">'+ cellData +'</a>');
       } },
     ],
     
@@ -370,11 +391,11 @@ function initializeDatatable () {
     
   $('#tableDevices').on( 'order.dt', function () {
     setParameter (parTableOrder, JSON.stringify (table.order()) );
-    setCookie ('devicesList',JSON.stringify (table.column(12, { 'search': 'applied' }).data().toArray()) );
+    setCookie ('devicesList',JSON.stringify (table.column(13, { 'search': 'applied' }).data().toArray()) );
   } );
 
   $('#tableDevices').on( 'search.dt', function () {
-    setCookie ('devicesList', JSON.stringify (table.column(12, { 'search': 'applied' }).data().toArray()) );
+    setCookie ('devicesList', JSON.stringify (table.column(13, { 'search': 'applied' }).data().toArray()) );
   } );
 };
 
@@ -413,6 +434,8 @@ function getDevicesList (status) {
     case 'favorites':  tableTitle = 'Favorites';           color = 'yellow';  break;
     case 'new':        tableTitle = 'New Devices';         color = 'yellow';  break;
     case 'down':       tableTitle = 'Down Alerts';         color = 'red';     break;
+    case 'adopted':    tableTitle = 'Adopted Devices';     color = 'purple';  break;
+    case 'discovered': tableTitle = 'Discovered Devices';  color = 'blue';    break;
     case 'archived':   tableTitle = 'Archived Devices';    color = 'gray';    break;
     default:           tableTitle = 'Devices';             color = 'gray';    break;
   } 
