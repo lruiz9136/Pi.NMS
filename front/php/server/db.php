@@ -1,7 +1,7 @@
 <?php
 //------------------------------------------------------------------------------
-//  Pi.Alert
-//  Open Source Network Guard / WIFI & LAN intrusion detector 
+// Pi.NMS v1.0
+// Open Source Network Monitoring Solution for ISP/MSP/NOC
 //
 //  db.php - Front module. Server side. DB common file
 //------------------------------------------------------------------------------
@@ -55,6 +55,25 @@ function OpenDB () {
   {
     die ('Error connecting to database');
   }
+
+  EnsureDeviceSourceColumn();
+}
+
+
+//------------------------------------------------------------------------------
+// Ensure Devices source column exists
+//------------------------------------------------------------------------------
+function EnsureDeviceSourceColumn () {
+  global $db;
+
+  $result = $db->query ('PRAGMA table_info(Devices)');
+  while ($row = $result -> fetchArray (SQLITE3_ASSOC)) {
+    if ($row['name'] == 'dev_Source') {
+      return;
+    }
+  }
+
+  $db->query ('ALTER TABLE Devices ADD COLUMN dev_Source STRING (20) NOT NULL DEFAULT "discovered"');
 }
    
 ?>

@@ -31,6 +31,7 @@
       case 'getDeviceData':           getDeviceData();                         break;
       case 'setDeviceData':           setDeviceData();                         break;
       case 'adoptDevice':             adoptDevice();                           break;
+      case 'ignoreDiscoveredDevice':  ignoreDiscoveredDevice();                break;
       case 'deleteDevice':            deleteDevice();                          break;
  
       case 'getDevicesTotals':        getDevicesTotals();                      break;
@@ -172,12 +173,32 @@ function adoptDevice() {
     return;
   }
 
-  $result = $db->query ('SELECT COUNT(*) FROM Devices WHERE dev_MAC="'. quotes ($mac) .'"');
-  $row = $result -> fetchArray (SQLITE3_NUM);
-  if ($row[0] > 0) {
+  $result = $db->query ('SELECT dev_Source FROM Devices WHERE dev_MAC="'. quotes ($mac) .'"');
+  $row = $result -> fetchArray (SQLITE3_ASSOC);
+  if ($row != false) {
+    if ($row['dev_Source'] == 'discovered') {
+      $alertDown = (isset ($_REQUEST['alertdown']) && $_REQUEST['alertdown'] == '1') ? 1 : 0;
+      $sql = 'UPDATE Devices SET
+                     dev_Source          = "adopted",
+                     dev_AlertEvents     = 1,
+                     dev_AlertDeviceDown = '. $alertDown .',
+                     dev_NewDevice       = 0,
+                     dev_Archived        = 0
+              WHERE dev_MAC="'. quotes ($mac) .'"
+                AND dev_Source="discovered"';
+      $result = $db->query ($sql);
+
+      echo (json_encode (array (
+        'success' => ($result == TRUE),
+        'message' => ($result == TRUE ? 'Device adopted successfully' : $db->lastErrorMsg()),
+        'mac' => $mac
+      )));
+      return;
+    }
+
     echo (json_encode (array (
       'success' => false,
-      'message' => 'This device has already been adopted or discovered.'
+      'message' => 'This device has already been adopted.'
     )));
     return;
   }
@@ -229,6 +250,7 @@ function adoptDevice() {
             dev_PresentLastScan,
             dev_NewDevice,
             dev_Location,
+            dev_Source,
             dev_Archived
           ) VALUES (
             "'. quotes ($mac) .'",
@@ -251,6 +273,7 @@ function adoptDevice() {
             0,
             0,
             "'. quotes ($location) .'",
+            "adopted",
             0
           )';
 
@@ -266,6 +289,46 @@ function adoptDevice() {
     echo (json_encode (array (
       'success' => false,
       'message' => $db->lastErrorMsg()
+    )));
+  }
+}
+
+
+//------------------------------------------------------------------------------
+//  Ignore Discovered Device
+//------------------------------------------------------------------------------
+function ignoreDiscoveredDevice() {
+  global $db;
+
+  $mac = strtoupper (trim ($_REQUEST['mac']));
+  $mac = str_replace ('-', ':', $mac);
+
+  if (!preg_match ('/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/', $mac)) {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => 'Use MAC format AA:BB:CC:DD:EE:FF.'
+    )));
+    return;
+  }
+
+  $sql = 'DELETE FROM Devices
+          WHERE dev_MAC="'. quotes ($mac) .'"
+            AND dev_Source="discovered"';
+  $result = $db->query ($sql);
+  $removed = $db->changes();
+
+  if ($result == TRUE && $removed > 0) {
+    $db->query ('UPDATE Events SET eve_PendingAlertEmail=0
+                 WHERE eve_MAC="'. quotes ($mac) .'"
+                   AND eve_EventType="New Device"');
+    echo (json_encode (array (
+      'success' => true,
+      'message' => 'Discovered device ignored until the next discovery cycle.'
+    )));
+  } else {
+    echo (json_encode (array (
+      'success' => false,
+      'message' => 'Only discovered devices can be ignored this way.'
     )));
   }
 }
@@ -361,7 +424,9 @@ function getDevicesList() {
                                   formatDate ($row['dev_LastConnection']),
                                   $row['dev_LastIP'],
                                   ( in_array($row['dev_MAC'][1], array("2","6","A","E","a","e")) ? 1 : 0),
+                                  $row['dev_Source'],
                                   $row['dev_Status'],
+                                  $row['dev_Source'],
                                   $row['dev_MAC'], // MAC (hidden)
                                   formatIPlong ($row['dev_LastIP']), // IP orderable
                                   $row['rowid'] // Rowid (hidden)
@@ -415,14 +480,16 @@ function getOwners() {
   $sql = 'SELECT DISTINCT 1 as dev_Order, dev_Owner
           FROM Devices
           WHERE dev_Owner <> "(unknown)" AND dev_Owner <> ""
+            AND dev_MAC <> "Internet"
             AND dev_Favorite = 1
         UNION
           SELECT DISTINCT 2 as dev_Order, dev_Owner
           FROM Devices
           WHERE dev_Owner <> "(unknown)" AND dev_Owner <> ""
+            AND dev_MAC <> "Internet"
             AND dev_Favorite = 0
             AND dev_Owner NOT IN
-               (SELECT dev_Owner FROM Devices WHERE dev_Favorite = 1)
+               (SELECT dev_Owner FROM Devices WHERE dev_Favorite = 1 AND dev_MAC <> "Internet")
         ORDER BY 1,2 ';
   $result = $db->query($sql);
 
@@ -453,6 +520,7 @@ function getDeviceTypes() {
                  "Game Console", "SmartTV", "TV Decoder", "Virtual Assistance",
                  "Clock", "House Appliance", "Phone", "Radio",
                  "AP", "NAS", "PLC", "Router")
+            AND dev_MAC <> "Internet"
 
           UNION SELECT 1 as dev_Order, "Smartphone"
           UNION SELECT 1 as dev_Order, "Tablet"
@@ -509,6 +577,7 @@ function getGroups() {
   $sql = 'SELECT DISTINCT 1 as dev_Order, dev_Group
           FROM Devices
           WHERE dev_Group NOT IN ("(unknown)", "Others") AND dev_Group <> ""
+            AND dev_MAC <> "Internet"
           UNION SELECT 1 as dev_Order, "Always on"
           UNION SELECT 1 as dev_Order, "Friends"
           UNION SELECT 1 as dev_Order, "Personal"
@@ -538,6 +607,7 @@ function getLocations() {
   $sql = 'SELECT DISTINCT 9 as dev_Order, dev_Location
           FROM Devices
           WHERE dev_Location <> ""
+            AND dev_MAC <> "Internet"
             AND dev_Location NOT IN (
                 "Bathroom", "Bedroom", "Dining room", "Hallway",
                 "Kitchen", "Laundry", "Living room", "Study", 
@@ -585,13 +655,17 @@ function getLocations() {
 //  Status Where conditions
 //------------------------------------------------------------------------------
 function getDeviceCondition ($deviceStatus) {
+  $inventoryOnly = 'dev_MAC<>"Internet"';
+
   switch ($deviceStatus) {
-    case 'all':        return 'WHERE dev_Archived=0';                                                      break;
-    case 'connected':  return 'WHERE dev_Archived=0 AND dev_PresentLastScan=1';                            break;
-    case 'favorites':  return 'WHERE dev_Archived=0 AND dev_Favorite=1';                                   break;
-    case 'new':        return 'WHERE dev_Archived=0 AND dev_NewDevice=1';                                  break;
-    case 'down':       return 'WHERE dev_Archived=0 AND dev_AlertDeviceDown=1 AND dev_PresentLastScan=0';  break;
-    case 'archived':   return 'WHERE dev_Archived=1';                                                      break;
+    case 'all':        return 'WHERE '. $inventoryOnly .' AND dev_Archived=0';                                                     break;
+    case 'connected':  return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_PresentLastScan=1';                           break;
+    case 'favorites':  return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_Favorite=1';                                  break;
+    case 'new':        return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_NewDevice=1';                                 break;
+    case 'down':       return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_AlertDeviceDown=1 AND dev_PresentLastScan=0'; break;
+    case 'adopted':    return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_Source="adopted"';                            break;
+    case 'discovered': return 'WHERE '. $inventoryOnly .' AND dev_Archived=0 AND dev_Source="discovered"';                         break;
+    case 'archived':   return 'WHERE '. $inventoryOnly .' AND dev_Archived=1';                                                     break;
     default:           return 'WHERE 1=0';                                                                 break;
   }
 }
