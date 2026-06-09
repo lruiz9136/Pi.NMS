@@ -426,6 +426,7 @@ function getDevicesList() {
                                   ( in_array($row['dev_MAC'][1], array("2","6","A","E","a","e")) ? 1 : 0),
                                   $row['dev_Source'],
                                   $row['dev_Status'],
+                                  $row['dev_Source'],
                                   $row['dev_MAC'], // MAC (hidden)
                                   formatIPlong ($row['dev_LastIP']), // IP orderable
                                   $row['rowid'] // Rowid (hidden)

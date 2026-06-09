@@ -67,7 +67,7 @@
             <div  class="small-box bg-yellow pa-small-box-yellow pa-small-box-2">
               <div class="inner"> <h3 id="devicesNew"> -- </h3> </div>
               <div class="icon"> <i class="ion ion-plus-round text-yellow-20"></i> </div>
-              <div class="small-box-footer pa-small-box-footer"> New Devices <i class="fa fa-arrow-circle-right"></i> </div>
+              <div class="small-box-footer pa-small-box-footer"> Discovered <i class="fa fa-arrow-circle-right"></i> </div>
             </div>
           </a>
         </div>
@@ -134,6 +134,7 @@
                   <th>MAC</th>
                   <th>Source</th>
                   <th>Status</th>
+                  <th>Actions</th>
                   <th>MAC</th>
                   <th>Last IP Order</th>
                   <th>Rowid</th>
@@ -310,16 +311,16 @@ function initializeDatatable () {
     // 'order'       : [[3,'desc'], [0,'asc']],
 
     'columnDefs'   : [
-      {visible:   false,         targets: [11, 12, 13] },
-      {className: 'text-center', targets: [3, 8, 9, 10] },
+      {visible:   false,         targets: [12, 13, 14] },
+      {className: 'text-center', targets: [3, 8, 9, 10, 11] },
       {width:     '80px',        targets: [5, 6] },
-      {width:     '0px',         targets: 10 },
-      {orderData: [12],          targets: 7 },
+      {width:     '0px',         targets: [10, 11] },
+      {orderData: [13],          targets: 7 },
 
       // Device Name
       {targets: [0],
         'createdCell': function (td, cellData, rowData, row, col) {
-            $(td).html ('<b><a href="deviceDetails.php?mac='+ rowData[11] +'" class="">'+ cellData +'</a></b>');
+            $(td).html ('<b><a href="deviceDetails.php?mac='+ rowData[12] +'" class="">'+ cellData +'</a></b>');
       } },
 
       // Favorite
@@ -357,13 +358,7 @@ function initializeDatatable () {
             default:           color='gray';   label='Unknown';    break;
           };
 
-          sourceHtml = '<span class="badge bg-'+ color +'">'+ label +'</span>';
-          if (cellData == 'discovered') {
-            sourceHtml += ' <button type="button" class="btn btn-xs btn-success" onclick="adoptDiscoveredDevice(\''+ rowData[11] +'\')"><i class="fa fa-check"></i></button>';
-            sourceHtml += ' <button type="button" class="btn btn-xs btn-default" onclick="ignoreDiscoveredDevice(\''+ rowData[11] +'\')"><i class="fa fa-times"></i></button>';
-          }
-
-          $(td).html (sourceHtml);
+          $(td).html ('<span class="badge bg-'+ color +'">'+ label +'</span>');
       } },
 
       // Status color
@@ -378,7 +373,20 @@ function initializeDatatable () {
             default:          color='aqua';             break;
           };
       
-          $(td).html ('<a href="deviceDetails.php?mac='+ rowData[11] +'" class="badge bg-'+ color +'">'+ cellData +'</a>');
+          $(td).html ('<a href="deviceDetails.php?mac='+ rowData[12] +'" class="badge bg-'+ color +'">'+ cellData +'</a>');
+      } },
+
+      // Actions
+      {targets: [11],
+        'createdCell': function (td, cellData, rowData, row, col) {
+          if (cellData == 'discovered') {
+            $(td).html (
+              '<button type="button" class="btn btn-xs btn-success" title="Adopt for monitoring" onclick="adoptDiscoveredDevice(\''+ rowData[12] +'\')"><i class="fa fa-check"></i></button> ' +
+              '<button type="button" class="btn btn-xs btn-default" title="Ignore until next discovery cycle" onclick="ignoreDiscoveredDevice(\''+ rowData[12] +'\')"><i class="fa fa-times"></i></button>'
+            );
+          } else {
+            $(td).html ('');
+          }
       } },
     ],
     
@@ -397,11 +405,11 @@ function initializeDatatable () {
     
   $('#tableDevices').on( 'order.dt', function () {
     setParameter (parTableOrder, JSON.stringify (table.order()) );
-    setCookie ('devicesList',JSON.stringify (table.column(13, { 'search': 'applied' }).data().toArray()) );
+    setCookie ('devicesList',JSON.stringify (table.column(14, { 'search': 'applied' }).data().toArray()) );
   } );
 
   $('#tableDevices').on( 'search.dt', function () {
-    setCookie ('devicesList', JSON.stringify (table.column(13, { 'search': 'applied' }).data().toArray()) );
+    setCookie ('devicesList', JSON.stringify (table.column(14, { 'search': 'applied' }).data().toArray()) );
   } );
 };
 
@@ -438,7 +446,7 @@ function getDevicesList (status) {
     case 'all':        tableTitle = 'All Devices';         color = 'aqua';    break;
     case 'connected':  tableTitle = 'Connected Devices';   color = 'green';   break;
     case 'favorites':  tableTitle = 'Favorites';           color = 'yellow';  break;
-    case 'new':        tableTitle = 'New Devices';         color = 'yellow';  break;
+    case 'new':        tableTitle = 'Discovered';          color = 'yellow';  break;
     case 'down':       tableTitle = 'Down Alerts';         color = 'red';     break;
     case 'adopted':    tableTitle = 'Adopted Devices';     color = 'purple';  break;
     case 'discovered': tableTitle = 'Discovered Devices';  color = 'blue';    break;
