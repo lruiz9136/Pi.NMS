@@ -225,7 +225,7 @@ def save_new_internet_IP (pNewIP):
                         eve_PendingAlertEmail)
                     VALUES ('Internet', ?, ?, 'Internet IP Changed',
                         'Previous Internet IP: '|| ?, 1) """,
-                    (pNewIP, startTime, get_previous_internet_IP() ) )
+                    (pNewIP, db_datetime(startTime), get_previous_internet_IP() ) )
 
     # Save new IP
     sql.execute ("""UPDATE Devices SET dev_LastIP = ?
@@ -714,7 +714,7 @@ def create_new_devices ():
                     WHERE cur_ScanCycle = ? 
                       AND NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = cur_MAC) """,
-                    (startTime, cycle) ) 
+                    (db_datetime(startTime), cycle) ) 
 
     # arpscan - Create new devices
     print_log ('New devices - 2 Create devices')
@@ -728,7 +728,7 @@ def create_new_devices ():
                     WHERE cur_ScanCycle = ? 
                       AND NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = cur_MAC) """,
-                    (startTime, startTime, cycle) ) 
+                    (db_datetime(startTime), db_datetime(startTime), cycle) ) 
 
     # Pi-hole - Insert events for new devices
     # NOT STRICYLY NECESARY (Devices can be created through Current_Scan)
@@ -742,7 +742,7 @@ def create_new_devices ():
                     FROM PiHole_Network
                     WHERE NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = PH_MAC) """,
-                    (startTime, ) ) 
+                    (db_datetime(startTime), ) ) 
 
     # Pi-hole - Create New Devices
     # Bugfix #2 - Pi-hole devices w/o IP
@@ -756,7 +756,7 @@ def create_new_devices ():
                     FROM PiHole_Network
                     WHERE NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = PH_MAC) """,
-                    (startTime, startTime) ) 
+                    (db_datetime(startTime), db_datetime(startTime)) ) 
 
     # DHCP Leases - Insert events for new devices
     print_log ('New devices - 5 DHCP Leases Events')
@@ -767,7 +767,7 @@ def create_new_devices ():
                     FROM DHCP_Leases
                     WHERE NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = DHCP_MAC) """,
-                    (startTime, ) ) 
+                    (db_datetime(startTime), ) ) 
 
     # DHCP Leases - Create New Devices
     print_log ('New devices - 6 DHCP Leases Create devices')
@@ -792,7 +792,7 @@ def create_new_devices ():
                     FROM DHCP_Leases AS D1
                     WHERE NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = DHCP_MAC) """,
-                    (startTime, startTime) ) 
+                    (db_datetime(startTime), db_datetime(startTime)) ) 
 
     # sql.execute ("""INSERT INTO Devices (dev_MAC, dev_name, dev_Vendor,
     #                     dev_LastIP, dev_FirstConnection, dev_LastConnection,
@@ -822,7 +822,7 @@ def insert_events ():
                       AND NOT EXISTS (SELECT 1 FROM CurrentScan
                                       WHERE dev_MAC = cur_MAC
                                         AND dev_ScanCycle = cur_ScanCycle) """,
-                    (startTime, cycle) )
+                    (db_datetime(startTime), cycle) )
 
     # Check new connections
     print_log ('Events 2 - New Connections')
@@ -835,7 +835,7 @@ def insert_events ():
                       AND dev_Source = 'adopted'
                       AND dev_PresentLastScan = 0
                       AND dev_ScanCycle = ? """,
-                    (startTime, cycle) )
+                    (db_datetime(startTime), cycle) )
 
     # Check disconnections
     print_log ('Events 3 - Disconnections')
@@ -852,7 +852,7 @@ def insert_events ():
                       AND NOT EXISTS (SELECT 1 FROM CurrentScan
                                       WHERE dev_MAC = cur_MAC
                                         AND dev_ScanCycle = cur_ScanCycle) """,
-                    (startTime, cycle) )
+                    (db_datetime(startTime), cycle) )
 
     # Check IP Changed
     print_log ('Events 4 - IP Changes')
@@ -866,7 +866,7 @@ def insert_events ():
                       AND dev_Source = 'adopted'
                       AND dev_ScanCycle = ?
                       AND dev_LastIP <> cur_IP """,
-                    (startTime, cycle) )
+                    (db_datetime(startTime), cycle) )
     print_log ('Events end')
 
 #-------------------------------------------------------------------------------
@@ -880,7 +880,7 @@ def update_devices_data_from_scan ():
                       AND EXISTS (SELECT 1 FROM CurrentScan 
                                   WHERE dev_MAC = cur_MAC
                                     AND dev_ScanCycle = cur_ScanCycle) """,
-                    (startTime, cycle))
+                    (db_datetime(startTime), cycle))
 
     # Clean no active devices
     print_log ('Update devices - 2 Clean no active devices')
@@ -952,7 +952,7 @@ def update_devices_data_from_scan ():
     sql.execute ("""UPDATE Devices SET dev_ScanCycle = 15
                     WHERE dev_FirstConnection = ?
                       AND UPPER(dev_Vendor) LIKE '%APPLE%' """,
-                (startTime,) )
+                (db_datetime(startTime),) )
 
     print_log ('Update devices end')
 
@@ -1053,7 +1053,7 @@ def void_ghost_disconnections ():
                             AND eve_DateTime >=
                                 DATETIME (?, '-' || cic_EveryXmin ||' minutes')
                           ) """,
-                    (startTime, cycle, startTime)   )
+                    (db_datetime(startTime), cycle, db_datetime(startTime))   )
 
     # Void connect paired events
     print_log ('Void - 2 Paired events')
@@ -1071,7 +1071,7 @@ def void_ghost_disconnections ():
                             AND eve_DateTime >=
                                 DATETIME (?, '-' || cic_EveryXmin ||' minutes')
                           ) """,
-                    (cycle, startTime)   )
+                    (cycle, db_datetime(startTime))   )
 
     # Void disconnect ghost events 
     print_log ('Void - 3 Disconnect ghost events')
@@ -1090,7 +1090,7 @@ def void_ghost_disconnections ():
                             AND eve_DateTime >=
                                 DATETIME (?, '-' || cic_EveryXmin ||' minutes')
                           ) """,
-                    (cycle, startTime)   )
+                    (cycle, db_datetime(startTime))   )
     print_log ('Void end')
 
 #-------------------------------------------------------------------------------
@@ -1350,7 +1350,7 @@ def email_reporting ():
     sql.execute ("""UPDATE Devices SET dev_LastNotification = ?
                     WHERE dev_MAC IN (SELECT eve_MAC FROM Events
                                       WHERE eve_PendingAlertEmail = 1)
-                 """, (datetime.datetime.now(),) )
+                 """, (db_datetime(datetime.datetime.now()),) )
     sql.execute ("""UPDATE Events SET eve_PendingAlertEmail = 0
                     WHERE eve_PendingAlertEmail = 1""")
 
@@ -1489,6 +1489,10 @@ def closeDB ():
 #===============================================================================
 # UTIL
 #===============================================================================
+def db_datetime (pDateTime):
+    return pDateTime.strftime('%Y-%m-%d %H:%M:%S')
+
+#-------------------------------------------------------------------------------
 def print_log (pText):
     global log_timestamp
 
