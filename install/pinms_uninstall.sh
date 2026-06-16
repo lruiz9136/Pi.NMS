@@ -1,9 +1,9 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
-#  pialert_uninstall.sh - Uninstallation script
+#  pinms_uninstall.sh - Uninstallation script
 # ------------------------------------------------------------------------------
 #  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
 # ------------------------------------------------------------------------------
@@ -16,22 +16,24 @@
   
   INSTALL_DIR=~
   PIALERT_HOME="$INSTALL_DIR/pialert"
+  PINMS_ARCHIVE="$INSTALL_DIR/pinms_latest.tar.gz"
+  LEGACY_ARCHIVE="$INSTALL_DIR/pialert_latest.tar.gz"
   
   LIGHTTPD_CONF_DIR="/etc/lighttpd"
   WEBROOT="/var/www/html"
   
-  LOG="pialert_uninstall_`date +"%Y-%m-%d_%H-%M"`.log"
+  LOG="pinms_uninstall_`date +"%Y-%m-%d_%H-%M"`.log"
 
 # ------------------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------------------
 main() {
-  print_superheader "Pi.Alert Uninstallation"
+  print_superheader "Pi.NMS Uninstallation"
   log "`date`"
   log "Logfile: $LOG"
 
   # Ask uninstallation
-  ask_yesno "This script will uninstall Pi.Alert from this system.\nUninstall path:  $PIALERT_HOME" \
+  ask_yesno "This script will uninstall Pi.NMS from this system.\nUninstall path:  $PIALERT_HOME" \
             "Do you want to continue ?"
   if ! $ANSWER ; then
     exit 1
@@ -41,27 +43,33 @@ main() {
 
   # Uninstall prrocess
   print_header "Removing files"
-  sudo rm -r "$PIALERT_HOME"                                      2>&1 >> "$LOG"
-  sudo rm "$WEBROOT/pialert"                                      2>&1 >> "$LOG"
-  sudo rm "$LIGHTTPD_CONF_DIR/conf-available/pialert_front.conf"  2>&1 >> "$LOG"
-  sudo rm "$LIGHTTPD_CONF_DIR/conf-enabled/pialert_front.conf"    2>&1 >> "$LOG"
-  sudo rm -r /var/cache/lighttpd/compress/pialert                 2>&1 >> "$LOG"
+  remove_path "$PIALERT_HOME"
+  remove_path "$WEBROOT/pialert"
+  remove_path "$LIGHTTPD_CONF_DIR/conf-available/pialert_front.conf"
+  remove_path "$LIGHTTPD_CONF_DIR/conf-enabled/pialert_front.conf"
+  remove_path "/var/cache/lighttpd/compress/pialert"
+  remove_path "$PINMS_ARCHIVE"
+  remove_path "$LEGACY_ARCHIVE"
 
   # Removing 
-  print_header "Removing Pi.Alert DNS name"
+  print_header "Removing Pi.NMS DNS name"
   if [ -f /etc/pihole/custom.list ] ; then
-    sudo sed -i '/pi.alert/d' /etc/pihole/custom.list             2>&1 >> "$LOG"
-    sudo pihole restartdns                                        2>&1 >> "$LOG"
+    sudo sed -i '/pi.alert/d' /etc/pihole/custom.list             >> "$LOG" 2>&1
+    if command -v pihole >/dev/null 2>&1 ; then
+      sudo pihole restartdns                                      >> "$LOG" 2>&1
+    fi
   fi
   
   # Uninstall crontab jobs
   print_header "Removing crontab jobs"
-  crontab -l 2>/dev/null | sed '/pialert.py/d' | sed ':a;N;$!ba;s/#-------------------------------------------------------------------------------\n#  Pi.Alert\n#  Open Source Network Guard \/ WIFI & LAN intrusion detector \n#\n#  pialert.cron - Back module. Crontab jobs\n#-------------------------------------------------------------------------------\n#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3\n#-------------------------------------------------------------------------------//g' | crontab -
+  if command -v crontab >/dev/null 2>&1 ; then
+    crontab -l 2>/dev/null | sed '/pialert.py/d' | sed ':a;N;$!ba;s/#-------------------------------------------------------------------------------\n#  Pi.Alert\n#  Open Source Network Guard \/ WIFI & LAN intrusion detector \n#\n#  pialert.cron - Back module. Crontab jobs\n#-------------------------------------------------------------------------------\n#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3\n#-------------------------------------------------------------------------------//g' | crontab - >> "$LOG" 2>&1
+  fi
 
   # final message
   print_header "Uninstallation process finished"
-  print_msg "Note1: If you installed Pi-hole during the Pi.Alert installation process"
-  print_msg "       Pi-hole will still be available after uninstalling Pi.Alert"
+  print_msg "Note1: If you installed Pi-hole during the Pi.NMS installation process"
+  print_msg "       Pi-hole will still be available after uninstalling Pi.NMS"
   print_msg ""
   print_msg "Note2: lighttpd, PHP, arp-scan & Python have not been uninstalled."
   print_msg "       They may be required by other software"
@@ -78,7 +86,7 @@ msgbox() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    whiptail --title "Pi.Alert Uninstallation" --msgbox "$LINE1\\n\\n$LINE2" $ROWS $COLS
+    whiptail --title "Pi.NMS Uninstallation" --msgbox "$LINE1\\n\\n$LINE2" $ROWS $COLS
     BUTTON=$?
     ask_cancel
     ANSWER=true
@@ -97,7 +105,7 @@ ask_yesno() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    whiptail --title "Pi.Alert Uninstallation" --yesno $DEF_BUTTON "$LINE1\\n\\n$LINE2" $ROWS $COLS
+    whiptail --title "Pi.NMS Uninstallation" --yesno $DEF_BUTTON "$LINE1\\n\\n$LINE2" $ROWS $COLS
     BUTTON=$?
     ask_cancel
   done
@@ -115,7 +123,7 @@ ask_option() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    ANSWER=$(whiptail --title "Pi.Alert Uninstallation" --menu "$1" $ROWS $COLS "${MENU_ARGS[@]}"  3>&2 2>&1 1>&3 )
+    ANSWER=$(whiptail --title "Pi.NMS Uninstallation" --menu "$1" $ROWS $COLS "${MENU_ARGS[@]}"  3>&2 2>&1 1>&3 )
     BUTTON=$?
     ask_cancel CANCEL
   done
@@ -127,7 +135,7 @@ ask_input() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    ANSWER=$(whiptail --title "Pi.Alert Uninstallation" --inputbox "$LINE1\\n\\n$LINE2" $ROWS $COLS "$3" 3>&2 2>&1 1>&3 )
+    ANSWER=$(whiptail --title "Pi.NMS Uninstallation" --inputbox "$LINE1\\n\\n$LINE2" $ROWS $COLS "$3" 3>&2 2>&1 1>&3 )
     BUTTON=$?
     ask_cancel CANCEL
 
@@ -145,13 +153,33 @@ ask_cancel() {
   if [ "$BUTTON" = "1" ] && [ "$1" = "CANCEL" ] ; then BUTTON="255"; fi
 
   if [ "$BUTTON" = "255" ] ; then
-    whiptail --title "Pi.Alert Uninstallation" --yesno --defaultno "$LINE0" $ROWS $COLS
+    whiptail --title "Pi.NMS Uninstallation" --yesno --defaultno "$LINE0" $ROWS $COLS
 
     if [ "$?" = "0" ] ; then
       process_error "Uninstallation Aborted by User"
     fi
   else
     END_DIALOG=true
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# Remove
+# ------------------------------------------------------------------------------
+remove_path() {
+  local TARGET="$1"
+
+  case "$TARGET" in
+    "$PIALERT_HOME"|"$WEBROOT/pialert"|"$LIGHTTPD_CONF_DIR/conf-available/pialert_front.conf"|"$LIGHTTPD_CONF_DIR/conf-enabled/pialert_front.conf"|"/var/cache/lighttpd/compress/pialert"|"$PINMS_ARCHIVE"|"$LEGACY_ARCHIVE")
+      ;;
+    *)
+      log_no_screen "Skipped out-of-scope uninstall path: $TARGET"
+      return
+      ;;
+  esac
+
+  if [ -e "$TARGET" ] || [ -L "$TARGET" ] ; then
+    sudo rm -rf -- "$TARGET"                                      >> "$LOG" 2>&1
   fi
 }
 
@@ -193,7 +221,7 @@ process_error() {
   log ""
   log "************************************************************"
   log "************************************************************"
-  log "**            ERROR UNINSTALLING PI.ALERT                 **"
+  log "**             ERROR UNINSTALLING PI.NMS                  **"
   log "************************************************************"
   log "************************************************************"
   log ""
