@@ -1,6 +1,6 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  pialert_install.sh - Installation script
@@ -64,7 +64,7 @@
 # Main
 # ------------------------------------------------------------------------------
 main() {
-  print_superheader "Pi.Alert Installation"
+  print_superheader "Pi.NMS Installation"
   log "`date`"
   log "Logfile: $LOG"
 
@@ -84,7 +84,7 @@ main() {
   print_header "Installation process finished"
   print_msg "Use: - http://pi.alert/"
   print_msg "     - http://$MAIN_IP/pialert/"
-  print_msg "To access Pi.Alert web"
+  print_msg "To access Pi.NMS web"
   print_msg ""
 
   move_logfile
@@ -96,7 +96,7 @@ main() {
 # ------------------------------------------------------------------------------
 ask_config() {
   # Ask installation
-  ask_yesno "This script will install Pi.Alert in this system using this path:\n$PIALERT_HOME" \
+  ask_yesno "This script will install Pi.NMS in this system using this path:\n$PIALERT_HOME" \
             "Do you want to continue ?"
   if ! $ANSWER ; then
     exit 1
@@ -114,7 +114,7 @@ ask_config() {
            "Perfect: Pi-hole Installation is not necessary"
   else
     ask_yesno "Pi-hole is not installed." \
-              "Do you want to install Pi-hole before installing Pi.Alert ?" "YES"
+              "Do you want to install Pi-hole before installing Pi.NMS ?" "YES"
     if $ANSWER ; then
       PIHOLE_INSTALL=true
       msgbox "In the installation wizard of Pi-hole, select this options" \
@@ -152,11 +152,11 @@ ask_config() {
            "when using the Pi-hole DHCP server!"
   fi
 
-  # Ask Pi.Alert deafault page
+  # Ask Pi.NMS default page
   PIALERT_DEFAULT_PAGE=false
   if ! $PIHOLE_ACTIVE && ! $PIHOLE_INSTALL; then
     ask_yesno "As Pi-hole is not going to be available in this system," \
-              "Do you want to use Pi.Alert as default web server page ?" "YES"
+              "Do you want to use Pi.NMS as default web server page ?" "YES"
     if $ANSWER ; then
       PIALERT_DEFAULT_PAGE=true
     fi
@@ -181,7 +181,7 @@ ask_config() {
 
   # Ask e-mail notification config
   MAIL_REPORT=false
-  ask_yesno "Pi.Alert can notify you by e-mail when a network event occurs" \
+  ask_yesno "Pi.NMS can notify you by e-mail when a network event occurs" \
             "Do you want to activate this feature ?"
   if $ANSWER ; then
     ask_yesno "e-mail notification needs a SMTP server (i.e. smtp.gmail.com)" \
@@ -205,7 +205,7 @@ ask_config() {
 
   # Ask Dynamic DNS config
   DDNS_ACTIVE=false
-  ask_yesno "Pi.Alert can update your Dynamic DNS IP (i.e with www.dynu.net)" \
+  ask_yesno "Pi.NMS can update your Dynamic DNS IP (i.e with www.dynu.net)" \
             "Do you want to activate this feature ?"
   if $ANSWER ; then
     ask_yesno "Dynamics DNS updater needs a DNS with IP Update Protocol" \
@@ -291,7 +291,7 @@ activate_DHCP() {
 
 
 # ------------------------------------------------------------------------------
-# Add Pi.Alert DNS
+# Add Pi.NMS DNS
 # ------------------------------------------------------------------------------
 add_pialert_DNS() {
   if ! $PIHOLE_ACTIVE ; then
@@ -434,10 +434,10 @@ check_python_versions() {
 
 
 # ------------------------------------------------------------------------------
-# Install Pi.Alert
+# Install Pi.NMS
 # ------------------------------------------------------------------------------
 install_pialert() {
-  print_header "Pi.Alert"
+  print_header "Pi.NMS"
 
   download_pialert
   configure_pialert
@@ -507,10 +507,10 @@ EOF
 
 
 # ------------------------------------------------------------------------------
-# Configure Pi.Alert parameters
+# Configure Pi.NMS parameters
 # ------------------------------------------------------------------------------
 configure_pialert() {
-  print_msg "- Settting Pi.Alert config file"
+  print_msg "- Settting Pi.NMS config file"
 
   set_pialert_parameter PIALERT_PATH    "'$PIALERT_HOME'"
   
@@ -533,7 +533,7 @@ configure_pialert() {
 
 
 # ------------------------------------------------------------------------------
-# Set Pi.Alert parameter
+# Set Pi.NMS parameter
 # ------------------------------------------------------------------------------
 set_pialert_parameter() {
   if [ "$2" = "false" ] ; then
@@ -549,19 +549,19 @@ set_pialert_parameter() {
 
 
 # ------------------------------------------------------------------------------
-# Test Pi.Alert
+# Test Pi.NMS
 # ------------------------------------------------------------------------------
 test_pialert() {
-  print_msg "- Testing Pi.Alert HW vendors database update process..."
+  print_msg "- Testing Pi.NMS HW vendors database update process..."
   print_msg "*** PLEASE WAIT A COUPLE OF MINUTES..."
   stdbuf -i0 -o0 -e0  $PYTHON_BIN $PIALERT_HOME/back/pialert.py update_vendors_silent            2>&1 | tee -ai "$LOG"
 
   echo ""
-  print_msg "- Testing Pi.Alert Internet IP Lookup..."
+  print_msg "- Testing Pi.NMS Internet IP Lookup..."
   stdbuf -i0 -o0 -e0  $PYTHON_BIN $PIALERT_HOME/back/pialert.py internet_IP                      2>&1 | tee -ai "$LOG"
 
   echo ""
-  print_msg "- Testing Pi.Alert Network scan..."
+  print_msg "- Testing Pi.NMS Network scan..."
   print_msg "*** PLEASE WAIT A COUPLE OF MINUTES..."
   stdbuf -i0 -o0 -e0  $PYTHON_BIN $PIALERT_HOME/back/pialert.py 1                                2>&1 | tee -ai "$LOG"
 
@@ -573,11 +573,11 @@ test_pialert() {
 }
 
 # ------------------------------------------------------------------------------
-# Add Pi.Alert jobs to crontab
+# Add Pi.NMS jobs to crontab
 # ------------------------------------------------------------------------------
 add_jobs_to_crontab() {
   if crontab -l 2>/dev/null | grep -Fq pialert ; then
-    print_msg "- Pi.Alert crontab jobs already exists. This is your crontab:"
+    print_msg "- Pi.NMS crontab jobs already exists. This is your crontab:"
     crontab -l | grep -F pialert                           2>&1 | tee -ai "$LOG"
     return    
   fi
@@ -591,11 +591,11 @@ add_jobs_to_crontab() {
 }
 
 # ------------------------------------------------------------------------------
-# Publish Pi.Alert web
+# Publish Pi.NMS web
 # ------------------------------------------------------------------------------
 publish_pialert() {
   if [ -e "$WEBROOT/pialert" ] || [ -L "$WEBROOT/pialert" ] ; then
-    print_msg "- Deleting previous Pi.Alert site"
+    print_msg "- Deleting previous Pi.NMS site"
     sudo rm -r "$WEBROOT/pialert"                                 2>&1 >> "$LOG"
   fi
 
@@ -604,7 +604,7 @@ publish_pialert() {
   chmod -R g+rwx $PIALERT_HOME/db                                 2>&1 >> "$LOG"
   chmod go+x $INSTALL_DIR                                         2>&1 >> "$LOG"
 
-  print_msg "- Publishing Pi.Alert web..."
+  print_msg "- Publishing Pi.NMS web..."
   sudo ln -s "$PIALERT_HOME/front" "$WEBROOT/pialert"             2>&1 >> "$LOG"
 
   print_msg "- Configuring http://pi.alert/ redirection..."
@@ -626,14 +626,14 @@ publish_pialert() {
 }
 
 # ------------------------------------------------------------------------------
-# Set Pi.Alert the default web server page
+# Set Pi.NMS as the default web server page
 # ------------------------------------------------------------------------------
 set_pialert_default_page() {
   if ! $PIALERT_DEFAULT_PAGE ; then
     return
   fi
   
-  print_msg "- Setting Pi.Alert as default web server page..."
+  print_msg "- Setting Pi.NMS as default web server page..."
 
   if [ -e "$WEBROOT/index.lighttpd.html" ] ; then
     if [ -e "$WEBROOT/index.lighttpd.html.orig" ] ; then
@@ -655,7 +655,7 @@ set_pialert_default_page() {
 }
 
 # ------------------------------------------------------------------------------
-# Check Pi.Alert Installation Path
+# Check Pi.NMS Installation Path
 # ------------------------------------------------------------------------------
 check_pialert_home() {
   mkdir -p "$INSTALL_DIR"
@@ -664,7 +664,7 @@ check_pialert_home() {
   fi
 
   if [ -e "$PIALERT_HOME" ] || [ -L "$PIALERT_HOME" ] ; then
-    process_error "Pi.Alert path already exists: $PIALERT_HOME"
+    process_error "Pi.NMS path already exists: $PIALERT_HOME"
   fi
 }
 
@@ -807,7 +807,7 @@ process_error() {
   log ""
   log "************************************************************"
   log "************************************************************"
-  log "**            ERROR INSTALLING PI.NMS                   **"
+  log "**             ERROR INSTALLING PI.NMS                    **"
   log "************************************************************"
   log "************************************************************"
   log ""
