@@ -226,7 +226,7 @@ process_error() {
   log "************************************************************"
   log ""
 
-  # msgbox "****** ERROR UNINSTALLING Pi.ALERT ******" "$1"
+  # msgbox "****** ERROR UNINSTALLING Pi.NMS ******" "$1"
   exit 1
 }
 
