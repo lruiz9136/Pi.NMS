@@ -692,7 +692,7 @@ msgbox() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    whiptail --title "Pi.Alert Installation" --msgbox "$LINE1\\n\\n$LINE2" $ROWS $COLS
+    whiptail --title "Pi.NMS Installation" --msgbox "$LINE1\\n\\n$LINE2" $ROWS $COLS
     BUTTON=$?
     ask_cancel
     ANSWER=true
@@ -711,7 +711,7 @@ ask_yesno() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    whiptail --title "Pi.Alert Installation" --yesno $DEF_BUTTON "$LINE1\\n\\n$LINE2" $ROWS $COLS
+    whiptail --title "Pi.NMS Installation" --yesno $DEF_BUTTON "$LINE1\\n\\n$LINE2" $ROWS $COLS
     BUTTON=$?
     ask_cancel
   done
@@ -729,7 +729,7 @@ ask_option() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    ANSWER=$(whiptail --title "Pi.Alert Installation" --menu "$1" $ROWS $COLS "${MENU_ARGS[@]}"  3>&2 2>&1 1>&3 )
+    ANSWER=$(whiptail --title "Pi.NMS Installation" --menu "$1" $ROWS $COLS "${MENU_ARGS[@]}"  3>&2 2>&1 1>&3 )
     BUTTON=$?
     ask_cancel CANCEL
   done
@@ -741,7 +741,7 @@ ask_input() {
 
   END_DIALOG=false
   while ! $END_DIALOG ; do
-    ANSWER=$(whiptail --title "Pi.Alert Installation" --inputbox "$LINE1\\n\\n$LINE2" $ROWS $COLS "$3" 3>&2 2>&1 1>&3 )
+    ANSWER=$(whiptail --title "Pi.NMS Installation" --inputbox "$LINE1\\n\\n$LINE2" $ROWS $COLS "$3" 3>&2 2>&1 1>&3 )
     BUTTON=$?
     ask_cancel CANCEL
 
@@ -759,7 +759,7 @@ ask_cancel() {
   if [ "$BUTTON" = "1" ] && [ "$1" = "CANCEL" ] ; then BUTTON="255"; fi
 
   if [ "$BUTTON" = "255" ] ; then
-    whiptail --title "Pi.Alert Installation" --yesno --defaultno "$LINE0" $ROWS $COLS
+    whiptail --title "Pi.NMS Installation" --yesno --defaultno "$LINE0" $ROWS $COLS
 
     if [ "$?" = "0" ] ; then
       process_error "Installation Aborted by User"
@@ -807,7 +807,7 @@ process_error() {
   log ""
   log "************************************************************"
   log "************************************************************"
-  log "**            ERROR INSTALLING PI.ALERT                   **"
+  log "**            ERROR INSTALLING PI.NMS                   **"
   log "************************************************************"
   log "************************************************************"
   log ""
@@ -816,7 +816,7 @@ process_error() {
   log "Use 'cat $LOG' to view installation log"
   log ""
 
-  # msgbox "****** ERROR INSTALLING Pi.ALERT ******" "$1"
+  # msgbox "****** ERROR INSTALLING Pi.NMS ******" "$1"
   exit 1
 }
 
