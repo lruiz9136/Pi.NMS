@@ -4,18 +4,18 @@
 #
 #  footer.php - Front module. Common footer to all the web pages 
 #-------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026        GNU GPLv3
 #--------------------------------------------------------------------------- -->
 
   <!-- Main Footer -->
   <footer class="main-footer">
     <!-- Default to the left -->
 
-    <!-- &copy; 2020 Puche -->
+    <!-- &copy; 2020 lruiz9136 -->
     <?php
       $conf_file = '../config/version.conf';
       $conf_data = parse_ini_file($conf_file);
-      echo '<span style="display:inline-block; transform: rotate(180deg)">&copy;</span> '. $conf_data['VERSION_YEAR'] .' Puche';
+      echo '<span style="display:inline-block; transform: rotate(180deg)">&copy;</span> '. $conf_data['VERSION_YEAR'] .' lruiz9136';
     ?>
 
     <!-- To the right -->
