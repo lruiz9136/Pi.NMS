@@ -1,10 +1,10 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  notificacion.php - Front module. Common notification & modal window
 #-------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026        GNU GPLv3
 #--------------------------------------------------------------------------- -->
 
 
@@ -58,4 +58,3 @@
   <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
   <div id="alert-message"> Alert message </div>
 </div>
-

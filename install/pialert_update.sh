@@ -25,7 +25,7 @@ PINMS_ARCHIVE="$INSTALL_DIR/pinms_latest.tar.gz"
 # Main
 # ------------------------------------------------------------------------------
 main() {
-  print_superheader "Pi.Alert Update"
+  print_superheader "Pi.NMS Update"
   log "`date`"
   log "Logfile: $LOG"
   log ""
@@ -57,10 +57,10 @@ main() {
 # ------------------------------------------------------------------------------
 create_backup() {
   # Previous backups are not deleted
-  # print_msg "- Deleting previous Pi.Alert backups..."
+  # print_msg "- Deleting previous Pi.NMS backups..."
   # rm "$INSTALL_DIR/"pialert_update_backup_*.tar  2>/dev/null || :
   
-  print_msg "- Creating new Pi.Alert backup..."
+  print_msg "- Creating new Pi.NMS backup..."
   cd "$INSTALL_DIR"
   tar cvf "$INSTALL_DIR"/pialert_update_backup_`date +"%Y-%m-%d_%H-%M"`.tar pialert --checkpoint=100 --checkpoint-action="ttyout=."     2>&1 >> "$LOG"
   echo ""
@@ -250,29 +250,29 @@ update_db() {
 }
 
 # ------------------------------------------------------------------------------
-# Test Pi.Alert
+# Test Pi.NMS
 # ------------------------------------------------------------------------------
 test_pialert() {
-  print_msg "- Testing Pi.Alert HW vendors database update process..."
+  print_msg "- Testing Pi.NMS HW vendors database update process..."
   print_msg "*** PLEASE WAIT A COUPLE OF MINUTES..."
   stdbuf -i0 -o0 -e0 $PYTHON_BIN $PIALERT_HOME/back/pialert.py update_vendors_silent  2>&1 | tee -ai "$LOG"
 
   echo ""
-  print_msg "- Testing Pi.Alert Internet IP Lookup..."
+  print_msg "- Testing Pi.NMS Internet IP Lookup..."
   stdbuf -i0 -o0 -e0 $PYTHON_BIN $PIALERT_HOME/back/pialert.py internet_IP            2>&1 | tee -ai "$LOG"
 
   echo ""
-  print_msg "- Testing Pi.Alert Network scan..."
+  print_msg "- Testing Pi.NMS Network scan..."
   print_msg "*** PLEASE WAIT A COUPLE OF MINUTES..."
   stdbuf -i0 -o0 -e0 $PYTHON_BIN $PIALERT_HOME/back/pialert.py 1                      2>&1 | tee -ai "$LOG"
 }
 
 # ------------------------------------------------------------------------------
-# Check Pi.Alert Installation Path
+# Check Pi.NMS Installation Path
 # ------------------------------------------------------------------------------
 check_pialert_home() {
   if [ ! -e "$PIALERT_HOME" ] ; then
-    process_error "Pi.Alert directory dosn't exists: $PIALERT_HOME"
+    process_error "Pi.NMS directory dosn't exists: $PIALERT_HOME"
   fi
 }
 
@@ -342,7 +342,7 @@ process_error() {
   log ""
   log "************************************************************"
   log "************************************************************"
-  log "**             ERROR UPDATING PI.ALERT                    **"
+  log "**              ERROR UPDATING PI.NMS                     **"
   log "************************************************************"
   log "************************************************************"
   log ""

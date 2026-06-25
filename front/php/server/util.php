@@ -1,11 +1,11 @@
 <?php
 //------------------------------------------------------------------------------
-//  Pi.Alert
+//  Pi.NMS
 //  Open Source Network Guard / WIFI & LAN intrusion detector 
 //
 //  util.php - Front module. Server side. Common generic functions
 //------------------------------------------------------------------------------
-//  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+//  lruiz9136 2026        GNU GPLv3
 //------------------------------------------------------------------------------
 
 

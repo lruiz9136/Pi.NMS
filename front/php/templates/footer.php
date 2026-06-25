@@ -1,31 +1,31 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  footer.php - Front module. Common footer to all the web pages 
 #-------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026        GNU GPLv3
 #--------------------------------------------------------------------------- -->
 
   <!-- Main Footer -->
   <footer class="main-footer">
     <!-- Default to the left -->
 
-    <!-- &copy; 2020 Puche -->
+    <!-- &copy; 2020 lruiz9136 -->
     <?php
       $conf_file = '../config/version.conf';
       $conf_data = parse_ini_file($conf_file);
-      echo '<span style="display:inline-block; transform: rotate(180deg)">&copy;</span> '. $conf_data['VERSION_YEAR'] .' Puche';
+      echo '<span style="display:inline-block; transform: rotate(180deg)">&copy;</span> '. $conf_data['VERSION_YEAR'] .' lruiz9136';
     ?>
 
     <!-- To the right -->
     <div class="pull-right no-hidden-xs">
 
-    <!-- Pi.Alert  2.50  <small>(2019-12-30)</small> -->
+    <!-- Pi.NMS  2.50  <small>(2019-12-30)</small> -->
     <?php
       $conf_file = '../config/version.conf';
       $conf_data = parse_ini_file($conf_file);
-      echo 'Pi.Alert&nbsp&nbsp'. $conf_data['VERSION'] .'&nbsp&nbsp<small>('. $conf_data['VERSION_DATE'] .')</small>';
+      echo 'Pi.NMS&nbsp&nbsp'. $conf_data['VERSION'] .'&nbsp&nbsp<small>('. $conf_data['VERSION_DATE'] .')</small>';
     ?>
     </div>
   </footer>
@@ -58,7 +58,7 @@
 <!-- FastClick -->
   <!-- <script src="lib/AdminLTE/bower_components/fastclick/lib/fastclick.js"></script>  -->
 
-<!-- Pi.Alert -------------------------------------------------------------- -->
+<!-- Pi.NMS -------------------------------------------------------------- -->
   <script src="js/pialert_common.js"></script>
 
 </body>

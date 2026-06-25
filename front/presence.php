@@ -1,10 +1,10 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  presence.php - Front module. Device Presence calendar page
 #-------------------------------------------------------------------------------
-#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+#  lruiz9136 2026        GNU GPLv3
 #--------------------------------------------------------------------------- -->
 
 <?php

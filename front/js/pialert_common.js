@@ -1,10 +1,10 @@
 /* -----------------------------------------------------------------------------
-*  Pi.Alert
+*  Pi.NMS
 *  Open Source Network Guard / WIFI & LAN intrusion detector 
 *
 *  pialert_common.js - Front module. Common Javascript functions
 *-------------------------------------------------------------------------------
-*  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3
+*  lruiz9136 2026        GNU GPLv3
 ----------------------------------------------------------------------------- */
 
 // -----------------------------------------------------------------------------
@@ -195,5 +195,4 @@ function newTimerRefreshData (refeshFunction) {
 function debugTimer () {
   $('#pageTitle').html (new Date().getSeconds());
 }
-
 
