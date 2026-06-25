@@ -109,7 +109,15 @@ function runUpdate() {
   }
 
   if (!is_dir ($paths['log_dir'])) {
-    mkdir ($paths['log_dir'], 0775, true);
+    if (!mkdir ($paths['log_dir'], 0775, true)) {
+      echo json_encode (array ('error' => 'Unable to create update job directory.'));
+      return;
+    }
+  }
+
+  if (!is_writable ($paths['log_dir'])) {
+    echo json_encode (array ('error' => 'Update job directory is not writable by the web server.'));
+    return;
   }
 
   if (isUpdateRunning ($paths)) {
@@ -119,11 +127,22 @@ function runUpdate() {
 
   @unlink ($paths['exit']);
   @unlink ($paths['log']);
-  file_put_contents ($paths['state'], json_encode (array (
+  $stateWritten = file_put_contents ($paths['state'], json_encode (array (
     'started_at' => gmdate ('c'),
     'repo' => $repo,
     'branch' => $branch
   )));
+
+  if ($stateWritten === false) {
+    echo json_encode (array ('error' => 'Unable to write update job state.'));
+    return;
+  }
+
+  if (file_put_contents ($paths['log'], '') === false) {
+    @unlink ($paths['state']);
+    echo json_encode (array ('error' => 'Unable to write update job log.'));
+    return;
+  }
 
   $env = array (
     'PINMS_REPO' => $repo,
@@ -134,7 +153,7 @@ function runUpdate() {
   );
 
   $command = buildEnvCommand ($env) .' /bin/bash '. escapeshellarg ($paths['script']);
-  $wrapped = '( '. $command .'; code=$?; echo $code > '. escapeshellarg ($paths['exit']) .' ) > '. escapeshellarg ($paths['log']) .' 2>&1 & echo $!';
+  $wrapped = '( cd '. escapeshellarg ($paths['log_dir']) .' && '. $command .'; code=$?; echo $code > '. escapeshellarg ($paths['exit']) .' ) >> '. escapeshellarg ($paths['log']) .' 2>&1 & echo $!';
   $pid = trim (shell_exec ($wrapped));
 
   if ($pid == '') {
@@ -233,7 +252,7 @@ function getLatestCommit ($repo, $branch) {
 //------------------------------------------------------------------------------
 function getUpdatePaths() {
   $home = realpath (__DIR__ . '/../../..');
-  $logDir = $home . '/log';
+  $logDir = rtrim (sys_get_temp_dir(), '/\\') . '/pinms-update-' . md5 ($home);
 
   return array (
     'home' => $home,
