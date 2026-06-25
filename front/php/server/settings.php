@@ -237,7 +237,7 @@ function getUpdatePaths() {
 
   return array (
     'home' => $home,
-    'script' => $home . '/install/pialert_update.sh',
+    'script' => $home . '/install/pinms_update.sh',
     'log_dir' => $logDir,
     'log' => $logDir . '/web_update.log',
     'exit' => $logDir . '/web_update.exit',
