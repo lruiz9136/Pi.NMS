@@ -69,8 +69,20 @@
               <button type="button" class="btn btn-primary" onclick="checkForUpdates()">
                 <i class="fa fa-refresh"></i> Check for Updates
               </button>
+              <button type="button" class="btn btn-warning" id="runUpdateButton" onclick="runUpdate()" disabled>
+                <i class="fa fa-download"></i> Run Update
+              </button>
             </div>
 
+          </div>
+
+          <div class="box box-warning" id="updateLogBox" style="display: none;">
+            <div class="box-header">
+              <h3 class="box-title text-yellow">Update Log</h3>
+            </div>
+            <div class="box-body">
+              <pre id="updateLog" style="min-height: 180px; max-height: 420px; overflow: auto; white-space: pre-wrap;">--</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -89,6 +101,7 @@
 <script>
 
   main();
+  var updatePollTimer = null;
 
 // -----------------------------------------------------------------------------
 function main () {
@@ -99,6 +112,7 @@ function main () {
 // -----------------------------------------------------------------------------
 function checkForUpdates () {
   $('#updateStatus').html ('Checking...');
+  $('#runUpdateButton').prop ('disabled', true);
 
   $.get('php/server/settings.php?action=checkUpdate', function(data) {
     var result = JSON.parse(data);
@@ -113,10 +127,70 @@ function checkForUpdates () {
       $('#updateStatus').html ('<span class="label label-danger">Error</span> ' + escapeHtml(result.error));
     } else if (result.update_available == true) {
       $('#updateStatus').html ('<span class="label label-warning">Update available</span>');
+      $('#runUpdateButton').prop ('disabled', false);
     } else if (result.update_available == false) {
       $('#updateStatus').html ('<span class="label label-success">Up to date</span>');
     } else {
       $('#updateStatus').html ('<span class="label label-default">Unknown</span>');
+    }
+  });
+}
+
+
+// -----------------------------------------------------------------------------
+function runUpdate () {
+  if (!confirm('Run the Pi.NMS update now?')) {
+    return;
+  }
+
+  $('#runUpdateButton').prop ('disabled', true);
+  $('#updateLogBox').show();
+  $('#updateLog').text('Starting update...');
+  $('#updateStatus').html ('<span class="label label-info">Update running</span>');
+
+  $.post('php/server/settings.php?action=runUpdate', function(data) {
+    var result = JSON.parse(data);
+
+    if (result.error != '') {
+      $('#updateStatus').html ('<span class="label label-danger">Error</span> ' + escapeHtml(result.error));
+      $('#updateLog').text(result.log || result.error);
+      return;
+    }
+
+    pollUpdateStatus();
+    updatePollTimer = setInterval(pollUpdateStatus, 3000);
+  });
+}
+
+
+// -----------------------------------------------------------------------------
+function pollUpdateStatus () {
+  $.get('php/server/settings.php?action=updateStatus', function(data) {
+    var result = JSON.parse(data);
+    $('#updateLogBox').show();
+    $('#updateLog').text(result.log || '--');
+    $('#updateLog').scrollTop($('#updateLog')[0].scrollHeight);
+
+    if (result.running == true) {
+      $('#updateStatus').html ('<span class="label label-info">Update running</span>');
+      return;
+    }
+
+    if (updatePollTimer != null) {
+      clearInterval(updatePollTimer);
+      updatePollTimer = null;
+    }
+
+    if (result.exit_code == 0) {
+      $('#updateStatus').html ('<span class="label label-success">Update complete</span>');
+      $('#sourceCommit').html      (formatCommit(result.installed_commit));
+      $('#sourceInstalledAt').html (escapeHtml(result.installed_at));
+      setTimeout(checkForUpdates, 1500);
+    } else if (result.exit_code != null) {
+      $('#updateStatus').html ('<span class="label label-danger">Update failed</span>');
+      $('#runUpdateButton').prop ('disabled', false);
+    } else if (result.error != '') {
+      $('#updateStatus').html ('<span class="label label-danger">Error</span> ' + escapeHtml(result.error));
     }
   });
 }

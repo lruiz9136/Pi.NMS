@@ -11,8 +11,8 @@
 # ------------------------------------------------------------------------------
 # Variables
 # ------------------------------------------------------------------------------
-INSTALL_DIR=~
-PIALERT_HOME="$INSTALL_DIR/pialert"
+INSTALL_DIR="${PINMS_INSTALL_DIR:-$HOME}"
+PIALERT_HOME="${PINMS_HOME:-$INSTALL_DIR/pialert}"
 LOG="pialert_update_`date +"%Y-%m-%d_%H-%M"`.log"
 PYTHON_BIN=python
 PINMS_REPO="${PINMS_REPO:-lruiz9136/Pi.NMS}"

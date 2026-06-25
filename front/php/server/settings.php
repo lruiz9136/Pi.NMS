@@ -18,6 +18,8 @@
     $action = $_REQUEST['action'];
     switch ($action) {
       case 'checkUpdate':  checkUpdate();  break;
+      case 'runUpdate':    runUpdate();    break;
+      case 'updateStatus': updateStatus(); break;
       default:             echo json_encode (array ('error' => 'Unknown action')); break;
     }
   }
@@ -28,16 +30,22 @@
 //------------------------------------------------------------------------------
 function checkUpdate() {
   $source = readSourceMetadata();
-  $repo = valueOrDefault ($source, 'SOURCE_REPO', 'lruiz9136/Pi.NMS');
-  $branch = valueOrDefault ($source, 'SOURCE_BRANCH', 'main');
+  $repo = valueOrDefault ($source, 'SOURCE_REPO', '');
+  $branch = valueOrDefault ($source, 'SOURCE_BRANCH', '');
   $installedCommit = valueOrDefault ($source, 'SOURCE_COMMIT', 'unknown');
   $installedAt = valueOrDefault ($source, 'SOURCE_INSTALLED_AT', 'unknown');
 
-  $latestCommit = getLatestCommit ($repo, $branch);
   $error = '';
   $updateAvailable = null;
+  $latestCommit = '';
 
-  if ($latestCommit == '') {
+  if ($repo == '' || $branch == '') {
+    $error = 'Installed repository or branch is missing from config/source.conf.';
+  } else {
+    $latestCommit = getLatestCommit ($repo, $branch);
+  }
+
+  if ($error == '' && $latestCommit == '') {
     $error = 'Unable to reach GitHub update metadata.';
   } elseif ($installedCommit == 'unknown' || $installedCommit == '') {
     $updateAvailable = null;
@@ -52,6 +60,118 @@ function checkUpdate() {
     'latest_commit' => $latestCommit,
     'installed_at' => $installedAt,
     'update_available' => $updateAvailable,
+    'error' => $error
+  ));
+}
+
+
+//------------------------------------------------------------------------------
+//  Run Update
+//------------------------------------------------------------------------------
+function runUpdate() {
+  ini_set ('max_execution_time','30');
+
+  $paths = getUpdatePaths();
+  $source = readSourceMetadata();
+  $repo = valueOrDefault ($source, 'SOURCE_REPO', '');
+  $branch = valueOrDefault ($source, 'SOURCE_BRANCH', '');
+  $archiveUrl = valueOrDefault ($source, 'SOURCE_ARCHIVE_URL', '');
+  $installedCommit = valueOrDefault ($source, 'SOURCE_COMMIT', 'unknown');
+
+  if ($repo == '' || $branch == '') {
+    echo json_encode (array ('error' => 'Update blocked because config/source.conf does not define SOURCE_REPO and SOURCE_BRANCH.'));
+    return;
+  }
+
+  if (!isValidSourceValue ($repo) || !isValidSourceValue ($branch)) {
+    echo json_encode (array ('error' => 'Update blocked because config/source.conf contains an invalid repository or branch.'));
+    return;
+  }
+
+  if ($archiveUrl == '') {
+    $archiveUrl = 'https://github.com/'. $repo .'/archive/refs/heads/'. $branch .'.tar.gz';
+  }
+
+  $latestCommit = getLatestCommit ($repo, $branch);
+  if ($latestCommit == '') {
+    echo json_encode (array ('error' => 'Unable to reach GitHub update metadata.'));
+    return;
+  }
+
+  if ($installedCommit != 'unknown' && $installedCommit != '' && $installedCommit == $latestCommit) {
+    echo json_encode (array ('error' => 'Update blocked because Pi.NMS is already up to date.'));
+    return;
+  }
+
+  if (!file_exists ($paths['script'])) {
+    echo json_encode (array ('error' => 'Update script was not found.'));
+    return;
+  }
+
+  if (!is_dir ($paths['log_dir'])) {
+    mkdir ($paths['log_dir'], 0775, true);
+  }
+
+  if (isUpdateRunning ($paths)) {
+    echo json_encode (array ('error' => 'An update is already running.', 'log' => readLogTail ($paths['log'])));
+    return;
+  }
+
+  @unlink ($paths['exit']);
+  @unlink ($paths['log']);
+  file_put_contents ($paths['state'], json_encode (array (
+    'started_at' => gmdate ('c'),
+    'repo' => $repo,
+    'branch' => $branch
+  )));
+
+  $env = array (
+    'PINMS_REPO' => $repo,
+    'PINMS_BRANCH' => $branch,
+    'PINMS_ARCHIVE_URL' => $archiveUrl,
+    'PINMS_HOME' => $paths['home'],
+    'PINMS_INSTALL_DIR' => dirname ($paths['home'])
+  );
+
+  $command = buildEnvCommand ($env) .' /bin/bash '. escapeshellarg ($paths['script']);
+  $wrapped = '( '. $command .'; code=$?; echo $code > '. escapeshellarg ($paths['exit']) .' ) > '. escapeshellarg ($paths['log']) .' 2>&1 & echo $!';
+  $pid = trim (shell_exec ($wrapped));
+
+  if ($pid == '') {
+    @unlink ($paths['state']);
+    echo json_encode (array ('error' => 'Unable to start update process.'));
+    return;
+  }
+
+  echo json_encode (array ('error' => '', 'pid' => $pid));
+}
+
+
+//------------------------------------------------------------------------------
+//  Update Status
+//------------------------------------------------------------------------------
+function updateStatus() {
+  $paths = getUpdatePaths();
+  $exitCode = null;
+  $running = false;
+  $error = '';
+
+  if (file_exists ($paths['exit'])) {
+    $exitCode = intval (trim (file_get_contents ($paths['exit'])));
+  } elseif (file_exists ($paths['state'])) {
+    $running = true;
+  } else {
+    $error = 'No update has been started.';
+  }
+
+  $source = readSourceMetadata();
+
+  echo json_encode (array (
+    'running' => $running,
+    'exit_code' => $exitCode,
+    'log' => readLogTail ($paths['log']),
+    'installed_commit' => valueOrDefault ($source, 'SOURCE_COMMIT', 'unknown'),
+    'installed_at' => valueOrDefault ($source, 'SOURCE_INSTALLED_AT', 'unknown'),
     'error' => $error
   ));
 }
@@ -105,6 +225,70 @@ function getLatestCommit ($repo, $branch) {
   }
 
   return $data['sha'];
+}
+
+
+//------------------------------------------------------------------------------
+//  Update Paths
+//------------------------------------------------------------------------------
+function getUpdatePaths() {
+  $home = realpath (__DIR__ . '/../../..');
+  $logDir = $home . '/log';
+
+  return array (
+    'home' => $home,
+    'script' => $home . '/install/pialert_update.sh',
+    'log_dir' => $logDir,
+    'log' => $logDir . '/web_update.log',
+    'exit' => $logDir . '/web_update.exit',
+    'state' => $logDir . '/web_update.state'
+  );
+}
+
+
+//------------------------------------------------------------------------------
+//  Is Update Running
+//------------------------------------------------------------------------------
+function isUpdateRunning ($paths) {
+  return file_exists ($paths['state']) && !file_exists ($paths['exit']);
+}
+
+
+//------------------------------------------------------------------------------
+//  Build Environment Command
+//------------------------------------------------------------------------------
+function buildEnvCommand ($env) {
+  $parts = array();
+  foreach ($env as $key => $value) {
+    $parts[] = $key .'='. escapeshellarg ($value);
+  }
+
+  return implode (' ', $parts);
+}
+
+
+//------------------------------------------------------------------------------
+//  Read Log Tail
+//------------------------------------------------------------------------------
+function readLogTail ($path) {
+  if (!file_exists ($path)) {
+    return '';
+  }
+
+  $contents = file_get_contents ($path);
+  if (strlen ($contents) > 20000) {
+    return substr ($contents, -20000);
+  }
+
+  return $contents;
+}
+
+
+//------------------------------------------------------------------------------
+//  Validate Source Value
+//------------------------------------------------------------------------------
+function isValidSourceValue ($value) {
+  return preg_match ('/^[A-Za-z0-9_.\/-]+$/', $value) === 1;
 }
 
 
