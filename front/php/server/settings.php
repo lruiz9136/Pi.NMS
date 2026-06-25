@@ -18,6 +18,7 @@
     $action = $_REQUEST['action'];
     switch ($action) {
       case 'checkUpdate':  checkUpdate();  break;
+      case 'checkRunner':  checkRunner();  break;
       case 'runUpdate':    runUpdate();    break;
       case 'updateStatus': updateStatus(); break;
       default:             echo json_encode (array ('error' => 'Unknown action')); break;
@@ -66,6 +67,21 @@ function checkUpdate() {
 
 
 //------------------------------------------------------------------------------
+//  Check Update Runner
+//------------------------------------------------------------------------------
+function checkRunner() {
+  $result = runUpdatePreflight();
+
+  echo json_encode (array (
+    'ok' => $result['exit_code'] === 0,
+    'exit_code' => $result['exit_code'],
+    'log' => $result['log'],
+    'error' => $result['exit_code'] === 0 ? '' : 'Update preflight failed.'
+  ));
+}
+
+
+//------------------------------------------------------------------------------
 //  Run Update
 //------------------------------------------------------------------------------
 function runUpdate() {
@@ -103,19 +119,16 @@ function runUpdate() {
     return;
   }
 
-  if (!file_exists ($paths['script'])) {
-    echo json_encode (array ('error' => 'Update script was not found.'));
+  $preflight = runUpdatePreflight();
+  if ($preflight['exit_code'] !== 0) {
+    echo json_encode (array (
+      'error' => 'Update preflight failed.',
+      'log' => $preflight['log']
+    ));
     return;
   }
 
-  if (!is_dir ($paths['log_dir'])) {
-    if (!mkdir ($paths['log_dir'], 0775, true)) {
-      echo json_encode (array ('error' => 'Unable to create update job directory.'));
-      return;
-    }
-  }
-
-  if (!is_writable ($paths['log_dir'])) {
+  if (!prepareUpdateJobDirectory ($paths)) {
     echo json_encode (array ('error' => 'Update job directory is not writable by the web server.'));
     return;
   }
@@ -197,6 +210,55 @@ function updateStatus() {
 
 
 //------------------------------------------------------------------------------
+//  Run Update Preflight
+//------------------------------------------------------------------------------
+function runUpdatePreflight() {
+  $paths = getUpdatePaths();
+  $source = readSourceMetadata();
+  $repo = valueOrDefault ($source, 'SOURCE_REPO', '');
+  $branch = valueOrDefault ($source, 'SOURCE_BRANCH', '');
+  $archiveUrl = valueOrDefault ($source, 'SOURCE_ARCHIVE_URL', '');
+
+  if ($archiveUrl == '' && $repo != '' && $branch != '') {
+    $archiveUrl = 'https://github.com/'. $repo .'/archive/refs/heads/'. $branch .'.tar.gz';
+  }
+
+  if (!file_exists ($paths['script'])) {
+    return array (
+      'exit_code' => 1,
+      'log' => 'Update script was not found: '. $paths['script']
+    );
+  }
+
+  if (!prepareUpdateJobDirectory ($paths)) {
+    return array (
+      'exit_code' => 1,
+      'log' => 'Update job directory is not writable by the web server.'
+    );
+  }
+
+  $env = array (
+    'PINMS_REPO' => $repo,
+    'PINMS_BRANCH' => $branch,
+    'PINMS_ARCHIVE_URL' => $archiveUrl,
+    'PINMS_HOME' => $paths['home'],
+    'PINMS_INSTALL_DIR' => dirname ($paths['home'])
+  );
+
+  $preflightLog = $paths['log_dir'] . '/web_update_preflight.log';
+  $command = buildEnvCommand ($env) .' /bin/bash '. escapeshellarg ($paths['script']) .' --check';
+  $wrapped = '( cd '. escapeshellarg ($paths['log_dir']) .' && '. $command .' ) > '. escapeshellarg ($preflightLog) .' 2>&1; echo $?';
+  $output = shell_exec ($wrapped);
+  $exitCode = ($output === null || trim ($output) === '') ? 1 : intval (trim ($output));
+
+  return array (
+    'exit_code' => $exitCode,
+    'log' => readLogTail ($preflightLog)
+  );
+}
+
+
+//------------------------------------------------------------------------------
 //  Read Source Metadata
 //------------------------------------------------------------------------------
 function readSourceMetadata() {
@@ -262,6 +324,18 @@ function getUpdatePaths() {
     'exit' => $logDir . '/web_update.exit',
     'state' => $logDir . '/web_update.state'
   );
+}
+
+
+//------------------------------------------------------------------------------
+//  Prepare Update Job Directory
+//------------------------------------------------------------------------------
+function prepareUpdateJobDirectory ($paths) {
+  if (!is_dir ($paths['log_dir']) && !mkdir ($paths['log_dir'], 0775, true)) {
+    return false;
+  }
+
+  return is_writable ($paths['log_dir']);
 }
 
 

@@ -127,12 +127,32 @@ function checkForUpdates () {
       $('#updateStatus').html ('<span class="label label-danger">Error</span> ' + escapeHtml(result.error));
     } else if (result.update_available == true) {
       $('#updateStatus').html ('<span class="label label-warning">Update available</span>');
-      $('#runUpdateButton').prop ('disabled', false);
+      checkUpdateRunner();
     } else if (result.update_available == false) {
       $('#updateStatus').html ('<span class="label label-success">Up to date</span>');
     } else {
       $('#updateStatus').html ('<span class="label label-default">Unknown</span>');
     }
+  });
+}
+
+
+// -----------------------------------------------------------------------------
+function checkUpdateRunner () {
+  $('#updateStatus').html ('<span class="label label-warning">Update available</span> Checking updater...');
+
+  $.get('php/server/settings.php?action=checkRunner', function(data) {
+    var result = JSON.parse(data);
+
+    if (result.ok == true) {
+      $('#updateStatus').html ('<span class="label label-warning">Update available</span>');
+      $('#runUpdateButton').prop ('disabled', false);
+      return;
+    }
+
+    $('#updateLogBox').show();
+    $('#updateLog').text(result.log || result.error || 'Update preflight failed.');
+    $('#updateStatus').html ('<span class="label label-danger">Updater not ready</span>');
   });
 }
 

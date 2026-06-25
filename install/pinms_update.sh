@@ -19,12 +19,22 @@ PINMS_REPO="${PINMS_REPO:-lruiz9136/Pi.NMS}"
 PINMS_BRANCH="${PINMS_BRANCH:-main}"
 PINMS_ARCHIVE_URL="${PINMS_ARCHIVE_URL:-https://github.com/$PINMS_REPO/archive/refs/heads/$PINMS_BRANCH.tar.gz}"
 PINMS_ARCHIVE="$INSTALL_DIR/pinms_latest.tar.gz"
+CHECK_ONLY=false
+
+if [ "$1" = "--check" ] || [ "$PINMS_CHECK_ONLY" = "1" ] ; then
+  CHECK_ONLY=true
+fi
 
 
 # ------------------------------------------------------------------------------
 # Main
 # ------------------------------------------------------------------------------
 main() {
+  if [ "$CHECK_ONLY" = true ] ; then
+    preflight_update
+    exit 0
+  fi
+
   print_superheader "Pi.NMS Update"
   log "`date`"
   log "Logfile: $LOG"
@@ -50,6 +60,95 @@ main() {
   print_msg ""
 
   move_logfile
+}
+
+# ------------------------------------------------------------------------------
+# Preflight update checks
+# ------------------------------------------------------------------------------
+preflight_update() {
+  print_superheader "Pi.NMS Update Preflight"
+  log "`date`"
+  log ""
+
+  check_pialert_home
+  check_required_command curl
+  check_required_command tar
+  check_required_command mktemp
+  check_required_command find
+  check_required_command sed
+  check_required_command head
+  check_required_command sudo
+  check_required_command apt-get
+  check_python_version
+  check_update_permissions
+  check_sudo_access
+  check_archive_access
+
+  print_header "Preflight checks passed"
+  print_msg "- Update script can run for $PINMS_REPO ($PINMS_BRANCH)"
+}
+
+# ------------------------------------------------------------------------------
+# Check required command
+# ------------------------------------------------------------------------------
+check_required_command() {
+  if ! command -v "$1" >/dev/null 2>&1 ; then
+    process_error "Required command not found: $1"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# Check update permissions
+# ------------------------------------------------------------------------------
+check_update_permissions() {
+  print_msg "- Checking update permissions..."
+
+  if [ ! -w "$PIALERT_HOME" ] ; then
+    process_error "Update user cannot write to Pi.NMS directory: $PIALERT_HOME"
+  fi
+
+  if [ ! -w "$PIALERT_HOME/config" ] ; then
+    process_error "Update user cannot write to Pi.NMS config directory: $PIALERT_HOME/config"
+  fi
+
+  if [ ! -w "$PIALERT_HOME/db" ] ; then
+    process_error "Update user cannot write to Pi.NMS database directory: $PIALERT_HOME/db"
+  fi
+
+  if [ ! -w "$INSTALL_DIR" ] ; then
+    process_error "Update user cannot write backup/archive files to: $INSTALL_DIR"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# Check sudo access
+# ------------------------------------------------------------------------------
+check_sudo_access() {
+  print_msg "- Checking sudo access..."
+
+  if ! sudo -n true >/dev/null 2>&1 ; then
+    process_error "Update user cannot run sudo without an interactive password prompt"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# Check source archive access
+# ------------------------------------------------------------------------------
+check_archive_access() {
+  print_msg "- Checking source archive access..."
+
+  TMP_ARCHIVE=`mktemp`
+  if ! curl -fsSL --max-time 30 -o "$TMP_ARCHIVE" "$PINMS_ARCHIVE_URL" ; then
+    rm -f "$TMP_ARCHIVE"
+    process_error "Unable to download Pi.NMS archive: $PINMS_ARCHIVE_URL"
+  fi
+
+  if ! tar tzf "$TMP_ARCHIVE" >/dev/null 2>&1 ; then
+    rm -f "$TMP_ARCHIVE"
+    process_error "Downloaded Pi.NMS archive could not be read"
+  fi
+
+  rm -f "$TMP_ARCHIVE"
 }
 
 # ------------------------------------------------------------------------------
