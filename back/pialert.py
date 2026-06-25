@@ -54,7 +54,7 @@ def main ():
     global sql
 
     # Header
-    print ('\nPi.Alert ' + VERSION +' ('+ VERSION_DATE +')')
+    print ('\nPi.NMS ' + VERSION +' ('+ VERSION_DATE +')')
     print ('---------------------------------------------------------')
 
     # Initialize global variables
@@ -1422,7 +1422,7 @@ def append_line_to_file (pPath, pText):
 def send_email (pText, pHTML):
     # Compose email
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = 'Pi.Alert Report'
+    msg['Subject'] = 'Pi.NMS Report'
     msg['From'] = REPORT_FROM
     msg['To'] = REPORT_TO
     msg.attach (MIMEText (pText, 'plain'))
@@ -1517,4 +1517,4 @@ def print_log (pText):
 # BEGIN
 #===============================================================================
 if __name__ == '__main__':
-    sys.exit(main())       
+    sys.exit(main())

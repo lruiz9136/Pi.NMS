@@ -1,5 +1,5 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  events.php - Front module. Events page

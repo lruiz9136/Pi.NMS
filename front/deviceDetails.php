@@ -393,7 +393,7 @@
                           <span id="iconRandomMACactive"   data-toggle="tooltip" data-placement="right" title="Random MAC is Active" class="hidden">
                             <i style="font-size: 24px;" class="text-yellow glyphicon glyphicon-random"></i> &nbsp &nbsp </span>
 
-                          <a href="https://github.com/pucherot/Pi.Alert/blob/main/docs/RAMDOM_MAC.md" target="_blank" style="color: #777;"> 
+                          <a href="https://github.com/lruiz9136/Pi.NMS/blob/main/docs/RAMDOM_MAC.md" target="_blank" style="color: #777;">
                             <i class="fa fa-info-circle"></i> </a>
                         </div>
                       </div>

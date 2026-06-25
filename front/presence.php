@@ -1,5 +1,5 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  presence.php - Front module. Device Presence calendar page

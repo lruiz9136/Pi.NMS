@@ -12,7 +12,7 @@ know, but it **is totally useless when connecting to our own WIFI's** or known
 networks.
 
 **I recommend disabling this operation when connecting our devices to our own
-WIFI's**, in this way, Pi.Alert will be able to identify the device, and it
+WIFI's**, in this way, Pi.NMS will be able to identify the device, and it
 will not identify it as a new device every so often (every time IOS or Android
 decides to change the MAC).
 
@@ -41,4 +41,3 @@ decides to change the MAC).
 <!--- --------------------------------------------------------------------- --->
 [ios]: https://9to5mac.com/wp-content/uploads/sites/6/2020/08/how-to-use-private-wifi-mac-address-iphone-ipad.png?resize=2048,1009 "ios"
 [Android]: ./img/android_random_mac.jpg "Android"
-

@@ -1,5 +1,5 @@
 <!-- ---------------------------------------------------------------------------
-#  Pi.Alert
+#  Pi.NMS
 #  Open Source Network Guard / WIFI & LAN intrusion detector 
 #
 #  footer.php - Front module. Common footer to all the web pages 
@@ -21,11 +21,11 @@
     <!-- To the right -->
     <div class="pull-right no-hidden-xs">
 
-    <!-- Pi.Alert  2.50  <small>(2019-12-30)</small> -->
+    <!-- Pi.NMS  2.50  <small>(2019-12-30)</small> -->
     <?php
       $conf_file = '../config/version.conf';
       $conf_data = parse_ini_file($conf_file);
-      echo 'Pi.Alert&nbsp&nbsp'. $conf_data['VERSION'] .'&nbsp&nbsp<small>('. $conf_data['VERSION_DATE'] .')</small>';
+      echo 'Pi.NMS&nbsp&nbsp'. $conf_data['VERSION'] .'&nbsp&nbsp<small>('. $conf_data['VERSION_DATE'] .')</small>';
     ?>
     </div>
   </footer>
@@ -58,7 +58,7 @@
 <!-- FastClick -->
   <!-- <script src="lib/AdminLTE/bower_components/fastclick/lib/fastclick.js"></script>  -->
 
-<!-- Pi.Alert -------------------------------------------------------------- -->
+<!-- Pi.NMS -------------------------------------------------------------- -->
   <script src="js/pialert_common.js"></script>
 
 </body>

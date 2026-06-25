@@ -1,6 +1,6 @@
 <?php
 //------------------------------------------------------------------------------
-//  Pi.Alert
+//  Pi.NMS
 //  Open Source Network Guard / WIFI & LAN intrusion detector 
 //
 //  util.php - Front module. Server side. Common generic functions
