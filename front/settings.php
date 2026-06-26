@@ -104,7 +104,7 @@
           </h4>
         </div>
         <div class="modal-body">
-          <p>Update Pi.NMS from the configured branch now?</p>
+          <p>Update Pi.NMS from the configured branch now? This may take a few minutes.</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
