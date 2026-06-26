@@ -260,16 +260,16 @@ download_pialert() {
   fi
 
   print_msg "- Installing updated Pi.NMS files..."
-  cp -a "$SOURCE_DIR/back" "$PIALERT_HOME/"                         2>&1 >> "$LOG"
-  cp -a "$SOURCE_DIR/docs" "$PIALERT_HOME/"                         2>&1 >> "$LOG"
-  cp -a "$SOURCE_DIR/front" "$PIALERT_HOME/"                        2>&1 >> "$LOG"
-  cp -a "$SOURCE_DIR/install" "$PIALERT_HOME/"                      2>&1 >> "$LOG"
-  cp -a "$SOURCE_DIR/LICENSE.txt" "$PIALERT_HOME/"                  2>&1 >> "$LOG"
-  cp -a "$SOURCE_DIR/README.md" "$PIALERT_HOME/"                    2>&1 >> "$LOG"
+  cp -R "$SOURCE_DIR/back" "$PIALERT_HOME/"                         2>&1 >> "$LOG"
+  cp -R "$SOURCE_DIR/docs" "$PIALERT_HOME/"                         2>&1 >> "$LOG"
+  cp -R "$SOURCE_DIR/front" "$PIALERT_HOME/"                        2>&1 >> "$LOG"
+  cp -R "$SOURCE_DIR/install" "$PIALERT_HOME/"                      2>&1 >> "$LOG"
+  cp "$SOURCE_DIR/LICENSE.txt" "$PIALERT_HOME/"                     2>&1 >> "$LOG"
+  cp "$SOURCE_DIR/README.md" "$PIALERT_HOME/"                       2>&1 >> "$LOG"
   if [ -f "$SOURCE_DIR/ROADMAP.md" ] ; then
-    cp -a "$SOURCE_DIR/ROADMAP.md" "$PIALERT_HOME/"                 2>&1 >> "$LOG"
+    cp "$SOURCE_DIR/ROADMAP.md" "$PIALERT_HOME/"                    2>&1 >> "$LOG"
   fi
-  cp -a "$SOURCE_DIR/config/version.conf" "$PIALERT_HOME/config/"   2>&1 >> "$LOG"
+  cp "$SOURCE_DIR/config/version.conf" "$PIALERT_HOME/config/"      2>&1 >> "$LOG"
 
   verify_pialert_source
   write_source_metadata
