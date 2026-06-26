@@ -20,7 +20,7 @@ Estimated time: 20'
 
 ## One-step Automated Update:
 <!--- --------------------------------------------------------------------- --->
-  #### `curl -sSL https://github.com/lruiz9136/Pi.NMS/raw/main/install/pialert_update.sh | bash`
+  #### `curl -sSL https://github.com/lruiz9136/Pi.NMS/raw/main/install/pinms_update.sh | bash`
 
 ## Uninstall process
 <!--- --------------------------------------------------------------------- --->

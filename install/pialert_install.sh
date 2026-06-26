@@ -600,8 +600,9 @@ publish_pialert() {
   fi
 
   print_msg "- Setting permissions..."
-  sudo chgrp -R www-data $PIALERT_HOME/db                         2>&1 >> "$LOG"
-  chmod -R g+rwx $PIALERT_HOME/db                                 2>&1 >> "$LOG"
+  sudo chgrp -R www-data $PIALERT_HOME                            2>&1 >> "$LOG"
+  chmod -R g+rwX $PIALERT_HOME                                    2>&1 >> "$LOG"
+  find "$PIALERT_HOME" -type d -exec chmod g+s {} \;              2>&1 >> "$LOG"
   chmod go+x $INSTALL_DIR                                         2>&1 >> "$LOG"
 
   print_msg "- Publishing Pi.NMS web..."
