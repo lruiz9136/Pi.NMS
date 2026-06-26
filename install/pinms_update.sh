@@ -56,6 +56,7 @@ main() {
   update_db
 
   test_pialert
+  write_source_metadata
   
   print_header "Update process finished"
   print_msg ""
@@ -273,7 +274,6 @@ download_pialert() {
   cp "$SOURCE_DIR/config/version.conf" "$PIALERT_HOME/config/"      2>&1 >> "$LOG"
 
   verify_pialert_source
-  write_source_metadata
   normalize_pialert_permissions "$PIALERT_HOME"
 
   print_msg "- Deleting downloaded archive..."
@@ -343,7 +343,6 @@ update_config() {
 update_db() {
   print_msg "- Updating DB permissions..."
   normalize_pialert_permissions "$PIALERT_HOME/db"
-  chmod -R 770 "$PIALERT_HOME/db"                                 2>&1 >> "$LOG"
 
   if can_use_sudo ; then
     print_msg "- Installing sqlite3..."
@@ -399,14 +398,18 @@ normalize_pialert_permissions() {
   print_msg "- Setting update permissions for $TARGET_PATH..."
   if [ "$(id -u)" = "0" ] ; then
     chgrp -R www-data "$TARGET_PATH"                              2>&1 >> "$LOG"
+    chmod -R g+rwX "$TARGET_PATH"                                 2>&1 >> "$LOG"
+    find "$TARGET_PATH" -type d -exec chmod g+s {} \;             2>&1 >> "$LOG"
   elif can_use_sudo ; then
     sudo chgrp -R www-data "$TARGET_PATH"                         2>&1 >> "$LOG"
+    chmod -R g+rwX "$TARGET_PATH"                                 2>&1 >> "$LOG"
+    find "$TARGET_PATH" -type d -exec chmod g+s {} \;             2>&1 >> "$LOG"
   else
     print_msg "  - Skipping group ownership update because sudo is unavailable."
+    CURRENT_UID=`id -u`
+    find "$TARGET_PATH" -user "$CURRENT_UID" -exec chmod g+rwX {} \; 2>&1 >> "$LOG"
+    find "$TARGET_PATH" -type d -user "$CURRENT_UID" -exec chmod g+s {} \; 2>&1 >> "$LOG"
   fi
-
-  chmod -R g+rwX "$TARGET_PATH"                                   2>&1 >> "$LOG"
-  find "$TARGET_PATH" -type d -exec chmod g+s {} \;               2>&1 >> "$LOG"
 }
 
 # ------------------------------------------------------------------------------
