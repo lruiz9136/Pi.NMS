@@ -165,7 +165,7 @@ function runUpdate() {
     'PINMS_INSTALL_DIR' => dirname ($paths['home'])
   );
 
-  $command = buildEnvCommand ($env) .' /bin/bash '. escapeshellarg ($paths['script']);
+  $command = buildUpdateCommand ($paths, $env);
   $wrapped = '( cd '. escapeshellarg ($paths['log_dir']) .' && '. $command .'; code=$?; echo $code > '. escapeshellarg ($paths['exit']) .' ) >> '. escapeshellarg ($paths['log']) .' 2>&1 & echo $!';
   $pid = trim (shell_exec ($wrapped));
 
@@ -246,7 +246,7 @@ function runUpdatePreflight() {
   );
 
   $preflightLog = $paths['log_dir'] . '/web_update_preflight.log';
-  $command = buildEnvCommand ($env) .' /bin/bash '. escapeshellarg ($paths['script']) .' --check';
+  $command = buildUpdateCommand ($paths, $env) .' --check';
   $wrapped = '( cd '. escapeshellarg ($paths['log_dir']) .' && '. $command .' ) > '. escapeshellarg ($preflightLog) .' 2>&1; echo $?';
   $output = shell_exec ($wrapped);
   $exitCode = ($output === null || trim ($output) === '') ? 1 : intval (trim ($output));
@@ -255,6 +255,33 @@ function runUpdatePreflight() {
     'exit_code' => $exitCode,
     'log' => readLogTail ($preflightLog)
   );
+}
+
+
+//------------------------------------------------------------------------------
+//  Build Update Command
+//------------------------------------------------------------------------------
+function buildUpdateCommand ($paths, $env) {
+  $command = buildEnvCommand ($env) .' /bin/bash '. escapeshellarg ($paths['script']);
+
+  if (updateNeedsSudo ($paths)) {
+    $command = 'sudo -n env '. buildEnvCommand ($env) .' /bin/bash '. escapeshellarg ($paths['script']);
+  }
+
+  return $command;
+}
+
+
+//------------------------------------------------------------------------------
+//  Update Needs Sudo
+//------------------------------------------------------------------------------
+function updateNeedsSudo ($paths) {
+  $installDir = dirname ($paths['home']);
+
+  return !is_writable ($paths['home'])
+      || !is_writable ($paths['home'] . '/config')
+      || !is_writable ($paths['home'] . '/db')
+      || !is_writable ($installDir);
 }
 
 

@@ -37,7 +37,7 @@ main() {
 
   print_superheader "Pi.NMS Update"
   log "`date`"
-  log "Logfile: $LOG"
+  log "Logfile: `get_log_path`"
   log ""
 
   set -e
@@ -68,6 +68,7 @@ main() {
 preflight_update() {
   print_superheader "Pi.NMS Update Preflight"
   log "`date`"
+  log "Logfile: `get_log_path`"
   log ""
 
   check_pialert_home
@@ -80,8 +81,8 @@ preflight_update() {
   check_required_command sudo
   check_required_command apt-get
   check_python_version
-  check_update_permissions
   check_sudo_access
+  check_update_permissions
   check_archive_access
 
   print_header "Preflight checks passed"
@@ -103,6 +104,13 @@ check_required_command() {
 check_update_permissions() {
   print_msg "- Checking update permissions..."
 
+  if [ "$(id -u)" != "0" ] && ! can_write_install_paths ; then
+    if sudo -n true >/dev/null 2>&1 ; then
+      print_msg "  - Direct write access is unavailable; update can use sudo."
+      return
+    fi
+  fi
+
   if [ ! -w "$PIALERT_HOME" ] ; then
     process_error "Update user cannot write to Pi.NMS directory: $PIALERT_HOME"
   fi
@@ -118,6 +126,16 @@ check_update_permissions() {
   if [ ! -w "$INSTALL_DIR" ] ; then
     process_error "Update user cannot write backup/archive files to: $INSTALL_DIR"
   fi
+}
+
+# ------------------------------------------------------------------------------
+# Can write install paths
+# ------------------------------------------------------------------------------
+can_write_install_paths() {
+  [ -w "$PIALERT_HOME" ] && \
+  [ -w "$PIALERT_HOME/config" ] && \
+  [ -w "$PIALERT_HOME/db" ] && \
+  [ -w "$INSTALL_DIR" ]
 }
 
 # ------------------------------------------------------------------------------
@@ -447,10 +465,20 @@ process_error() {
   log ""
   log "$1"
   log ""
-  log "Use 'cat $LOG' to view update log"
+  log "Use 'cat `get_log_path`' to view update log"
   log ""
 
   exit 1
+}
+
+# ------------------------------------------------------------------------------
+# Get log path
+# ------------------------------------------------------------------------------
+get_log_path() {
+  case "$LOG" in
+    /*) echo "$LOG" ;;
+    *) echo "`pwd`/$LOG" ;;
+  esac
 }
 
 # ------------------------------------------------------------------------------
