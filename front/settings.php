@@ -92,6 +92,30 @@
   </div>
   <!-- /.content-wrapper -->
 
+  <div class="modal fade" id="updateConfirmModal" tabindex="-1" role="dialog" aria-labelledby="updateConfirmTitle">
+    <div class="modal-dialog modal-sm" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-yellow">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title" id="updateConfirmTitle">
+            <i class="fa fa-download"></i> Run Update
+          </h4>
+        </div>
+        <div class="modal-body">
+          <p>Update Pi.NMS from the configured branch now?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-warning" onclick="confirmRunUpdate()">
+            <i class="fa fa-download"></i> Run Update
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <!-- ----------------------------------------------------------------------- -->
 <?php
   require 'php/templates/footer.php';
@@ -159,9 +183,13 @@ function checkUpdateRunner () {
 
 // -----------------------------------------------------------------------------
 function runUpdate () {
-  if (!confirm('Run the Pi.NMS update now?')) {
-    return;
-  }
+  $('#updateConfirmModal').modal('show');
+}
+
+
+// -----------------------------------------------------------------------------
+function confirmRunUpdate () {
+  $('#updateConfirmModal').modal('hide');
 
   $('#runUpdateButton').prop ('disabled', true);
   $('#updateLogBox').show();
