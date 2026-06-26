@@ -274,6 +274,7 @@ download_pialert() {
 
   verify_pialert_source
   write_source_metadata
+  normalize_pialert_permissions "$PIALERT_HOME"
 
   print_msg "- Deleting downloaded archive..."
   rm -r "$PINMS_ARCHIVE"
@@ -341,11 +342,16 @@ update_config() {
 # ------------------------------------------------------------------------------
 update_db() {
   print_msg "- Updating DB permissions..."
-  sudo chgrp -R www-data $PIALERT_HOME/db                         2>&1 >> "$LOG"
-  chmod -R 770 $PIALERT_HOME/db                                   2>&1 >> "$LOG"
+  normalize_pialert_permissions "$PIALERT_HOME/db"
+  chmod -R 770 "$PIALERT_HOME/db"                                 2>&1 >> "$LOG"
 
-  print_msg "- Installing sqlite3..."
-  sudo apt-get install sqlite3 -y                                 2>&1 >> "$LOG"
+  if can_use_sudo ; then
+    print_msg "- Installing sqlite3..."
+    sudo apt-get install sqlite3 -y                               2>&1 >> "$LOG"
+  else
+    print_msg "- Skipping sqlite3 install because sudo is unavailable..."
+    check_required_command sqlite3
+  fi
 
   print_msg "- Checking 'Parameters' table..."
   TAB=`sqlite3 $PIALERT_HOME/db/pialert.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Parameters' COLLATE NOCASE;"`              2>&1 >> "$LOG"
@@ -378,6 +384,36 @@ update_db() {
 
   print_msg "- Cheking Internet scancycle..."
   sqlite3 $PIALERT_HOME/db/pialert.db "UPDATE Devices set dev_ScanCycle=1, dev_AlertEvents=1, dev_AlertDeviceDown=1 WHERE dev_MAC='Internet' AND dev_ScanCycle=0;"  2>&1 >> "$LOG"
+}
+
+# ------------------------------------------------------------------------------
+# Normalize Pi.NMS permissions
+# ------------------------------------------------------------------------------
+normalize_pialert_permissions() {
+  TARGET_PATH="${1:-$PIALERT_HOME}"
+
+  if [ ! -e "$TARGET_PATH" ] ; then
+    return
+  fi
+
+  print_msg "- Setting update permissions for $TARGET_PATH..."
+  if [ "$(id -u)" = "0" ] ; then
+    chgrp -R www-data "$TARGET_PATH"                              2>&1 >> "$LOG"
+  elif can_use_sudo ; then
+    sudo chgrp -R www-data "$TARGET_PATH"                         2>&1 >> "$LOG"
+  else
+    print_msg "  - Skipping group ownership update because sudo is unavailable."
+  fi
+
+  chmod -R g+rwX "$TARGET_PATH"                                   2>&1 >> "$LOG"
+  find "$TARGET_PATH" -type d -exec chmod g+s {} \;               2>&1 >> "$LOG"
+}
+
+# ------------------------------------------------------------------------------
+# Check for non-interactive sudo
+# ------------------------------------------------------------------------------
+can_use_sudo() {
+  command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1
 }
 
 # ------------------------------------------------------------------------------
