@@ -13,7 +13,8 @@
 # ------------------------------------------------------------------------------
 INSTALL_DIR="${PINMS_INSTALL_DIR:-$HOME}"
 PIALERT_HOME="${PINMS_HOME:-$INSTALL_DIR/pialert}"
-LOG="pinms_update_`date +"%Y-%m-%d_%H-%M"`.log"
+LOG_NAME="pinms_update_`date +"%Y-%m-%d_%H-%M"`.log"
+LOG="$INSTALL_DIR/$LOG_NAME"
 PYTHON_BIN=python
 PINMS_REPO="${PINMS_REPO:-lruiz9136/Pi.NMS}"
 PINMS_BRANCH="${PINMS_BRANCH:-main}"
@@ -425,10 +426,12 @@ check_python_version() {
 # Move Logfile
 # ------------------------------------------------------------------------------
 move_logfile() {
-  NEWLOG="$PIALERT_HOME/log/$LOG"
+  NEWLOG="$PIALERT_HOME/log/$LOG_NAME"
 
   mkdir -p "$PIALERT_HOME/log"
-  mv $LOG $NEWLOG
+  if [ "$LOG" != "$NEWLOG" ] ; then
+    cp "$LOG" "$NEWLOG" 2>/dev/null || :
+  fi
 
   LOG="$NEWLOG"
   NEWLOG=""
