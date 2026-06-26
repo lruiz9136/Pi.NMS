@@ -123,7 +123,7 @@ check_update_permissions() {
   fi
 
   if [ ! -w "$INSTALL_DIR" ] ; then
-    process_error "Update user cannot write backup/archive files to: $INSTALL_DIR"
+    process_error "Update user cannot write temporary update files to: $INSTALL_DIR"
   fi
 }
 

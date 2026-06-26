@@ -162,7 +162,7 @@ function runUpdate() {
     'PINMS_BRANCH' => $branch,
     'PINMS_ARCHIVE_URL' => $archiveUrl,
     'PINMS_HOME' => $paths['home'],
-    'PINMS_INSTALL_DIR' => dirname ($paths['home'])
+    'PINMS_INSTALL_DIR' => $paths['log_dir']
   );
 
   $command = buildUpdateCommand ($paths, $env);
@@ -242,7 +242,7 @@ function runUpdatePreflight() {
     'PINMS_BRANCH' => $branch,
     'PINMS_ARCHIVE_URL' => $archiveUrl,
     'PINMS_HOME' => $paths['home'],
-    'PINMS_INSTALL_DIR' => dirname ($paths['home'])
+    'PINMS_INSTALL_DIR' => $paths['log_dir']
   );
 
   $preflightLog = $paths['log_dir'] . '/web_update_preflight.log';
@@ -276,12 +276,9 @@ function buildUpdateCommand ($paths, $env) {
 //  Update Needs Sudo
 //------------------------------------------------------------------------------
 function updateNeedsSudo ($paths) {
-  $installDir = dirname ($paths['home']);
-
   return !is_writable ($paths['home'])
       || !is_writable ($paths['home'] . '/config')
-      || !is_writable ($paths['home'] . '/db')
-      || !is_writable ($installDir);
+      || !is_writable ($paths['home'] . '/db');
 }
 
 
