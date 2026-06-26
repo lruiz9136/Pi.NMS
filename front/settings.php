@@ -104,7 +104,7 @@
           </h4>
         </div>
         <div class="modal-body">
-          <p>Update Pi.NMS from the configured branch now? The page will track progress while it runs.</p>
+          <p>Update Pi.NMS from the configured branch now? Progress will stay visible on this page.</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
