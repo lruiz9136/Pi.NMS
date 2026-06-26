@@ -79,10 +79,9 @@ preflight_update() {
   check_required_command sed
   check_required_command head
   check_required_command sudo
-  check_required_command apt-get
   check_python_version
-  check_sudo_access
   check_update_permissions
+  check_package_access
   check_archive_access
 
   print_header "Preflight checks passed"
@@ -139,13 +138,21 @@ can_write_install_paths() {
 }
 
 # ------------------------------------------------------------------------------
-# Check sudo access
+# Check package access
 # ------------------------------------------------------------------------------
-check_sudo_access() {
-  print_msg "- Checking sudo access..."
+check_package_access() {
+  print_msg "- Checking package access..."
 
-  if ! sudo -n true >/dev/null 2>&1 ; then
-    process_error "Update user cannot run sudo without an interactive password prompt"
+  if sudo -n true >/dev/null 2>&1 ; then
+    return
+  fi
+
+  check_required_command sqlite3
+
+  if command -v apt-get >/dev/null 2>&1 ; then
+    print_msg "  - sudo is unavailable; package installation will be skipped."
+  else
+    print_msg "  - apt-get is unavailable; package installation will be skipped."
   fi
 }
 
@@ -212,6 +219,12 @@ clean_files() {
 # Check packages
 # ------------------------------------------------------------------------------
 check_packages() {
+  if ! sudo -n true >/dev/null 2>&1 ; then
+    print_msg "- Skipping package checks because sudo is unavailable..."
+    check_required_command sqlite3
+    return
+  fi
+
   print_msg "- Checking package apt-utils..."
   sudo apt-get install apt-utils -y                               2>&1 >> "$LOG"
 
