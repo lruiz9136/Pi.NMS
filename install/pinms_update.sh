@@ -299,6 +299,7 @@ verify_pialert_source() {
 # Write source metadata
 # ------------------------------------------------------------------------------
 write_source_metadata() {
+  print_msg "- Recording source metadata..."
   SOURCE_COMMIT=`curl -fsSL "https://api.github.com/repos/$PINMS_REPO/commits/$PINMS_BRANCH" | sed -n 's/.*"sha": *"\([^"]*\)".*/\1/p' | head -n 1`
   if [ "$SOURCE_COMMIT" = "" ] ; then
     SOURCE_COMMIT="unknown"
@@ -434,6 +435,11 @@ test_pialert() {
 
   echo ""
   print_msg "- Testing Pi.NMS Network scan..."
+  if [ "$(id -u)" != "0" ] && ! can_use_sudo ; then
+    print_msg "  - Skipping network scan test because sudo is unavailable."
+    return
+  fi
+
   print_msg "*** PLEASE WAIT A COUPLE OF MINUTES..."
   stdbuf -i0 -o0 -e0 $PYTHON_BIN $PIALERT_HOME/back/pialert.py 1                      2>&1 | tee -ai "$LOG"
 }
