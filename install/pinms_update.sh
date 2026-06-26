@@ -300,7 +300,7 @@ verify_pialert_source() {
 # ------------------------------------------------------------------------------
 write_source_metadata() {
   print_msg "- Recording source metadata..."
-  SOURCE_COMMIT=`curl -fsSL "https://api.github.com/repos/$PINMS_REPO/commits/$PINMS_BRANCH" | sed -n 's/.*"sha": *"\([^"]*\)".*/\1/p' | head -n 1`
+  SOURCE_COMMIT=`curl -fsSL "https://api.github.com/repos/$PINMS_REPO/commits/$PINMS_BRANCH" | $PYTHON_BIN -c 'import sys,json; sys.stdout.write(json.load(sys.stdin).get("sha", ""))'`
   if [ "$SOURCE_COMMIT" = "" ] ; then
     SOURCE_COMMIT="unknown"
   fi
