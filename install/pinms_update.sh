@@ -48,6 +48,7 @@ main() {
 
   create_backup
   move_files
+  normalize_pialert_permissions "$PIALERT_HOME"
   clean_files
 
   check_packages
@@ -401,7 +402,7 @@ normalize_pialert_permissions() {
     chmod -R g+rwX "$TARGET_PATH"                                 2>&1 >> "$LOG"
     find "$TARGET_PATH" -type d -exec chmod g+s {} \;             2>&1 >> "$LOG"
   elif can_use_sudo ; then
-    sudo chgrp -R www-data "$TARGET_PATH"                         2>&1 >> "$LOG"
+    sudo chown -R "`id -un`:www-data" "$TARGET_PATH"              2>&1 >> "$LOG"
     chmod -R g+rwX "$TARGET_PATH"                                 2>&1 >> "$LOG"
     find "$TARGET_PATH" -type d -exec chmod g+s {} \;             2>&1 >> "$LOG"
   else
