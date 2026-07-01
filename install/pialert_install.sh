@@ -21,7 +21,6 @@
   PINMS_ARCHIVE_URL="${PINMS_ARCHIVE_URL:-https://github.com/$PINMS_REPO/archive/refs/heads/$PINMS_BRANCH.tar.gz}"
   PINMS_ARCHIVE="$INSTALL_DIR/pinms_latest.tar.gz"
   
-  LIGHTTPD_CONF_DIR="/etc/lighttpd"
   WEBROOT="/var/www/html"
   PIALERT_DEFAULT_PAGE=false
   
@@ -29,17 +28,6 @@
   
   # MAIN_IP=`ip -o route get 1 | sed -n 's/.*src \([0-9.]\+\).*/\1/p'`
   MAIN_IP=`ip -o route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q'`
-  
-  PIHOLE_INSTALL=false
-  PIHOLE_ACTIVE=false
-  DHCP_ACTIVATE=false
-  DHCP_ACTIVE=false
-  
-  DHCP_RANGE_START="192.168.1.200"
-  DHCP_RANGE_END="192.168.1.251"
-  DHCP_ROUTER="192.168.1.1"
-  DHCP_LEASE="1"
-  DHCP_DOMAIN="local"
   
   USE_PYTHON_VERSION=0
   PYTHON_BIN=python
@@ -73,17 +61,13 @@ main() {
 
   set -e
 
-  install_pihole
-  activate_DHCP
-  add_pialert_DNS
   install_lighttpd
   install_arpscan
   install_python
   install_pialert
 
   print_header "Installation process finished"
-  print_msg "Use: - http://pi.alert/"
-  print_msg "     - http://$MAIN_IP/pialert/"
+  print_msg "Use: http://$MAIN_IP/pialert/"
   print_msg "To access Pi.NMS web"
   print_msg ""
 
@@ -102,64 +86,12 @@ ask_config() {
     exit 1
   fi
 
-  # Ask Pi-hole Installation
-  PIHOLE_ACTIVE=false
-  if [ -e /usr/local/bin/pihole ] || [ -e /etc/pihole ]; then
-    PIHOLE_ACTIVE=true
-  fi
-
-  PIHOLE_INSTALL=false
-  if $PIHOLE_ACTIVE ; then
-    msgbox "Pi-hole is already installed in this system." \
-           "Perfect: Pi-hole Installation is not necessary"
-  else
-    ask_yesno "Pi-hole is not installed." \
-              "Do you want to install Pi-hole before installing Pi.NMS ?" "YES"
-    if $ANSWER ; then
-      PIHOLE_INSTALL=true
-      msgbox "In the installation wizard of Pi-hole, select this options" \
-             "'Install web admin interface' & 'Install web server lighttpd'"
-    fi
-  fi
-
-  # Ask DHCP Activation
-  DHCP_ACTIVE=false
-  DHCP_ACTIVATE=false
-  if $PIHOLE_ACTIVE ; then
-    DHCP_ACTIVE=`sudo grep DHCP_ACTIVE /etc/pihole/setupVars.conf | awk -F= '/./{print $2}'`
-    if [ "$DHCP_ACTIVE" = "" ] ; then DHCP_ACTIVE=false; fi
- 
-    if ! $DHCP_ACTIVE ; then
-      ask_yesno "Pi-hole DHCP server is not active." \
-                "Do you want to activate Pi-hole DHCP server ?"
-      if $ANSWER ; then
-        DHCP_ACTIVATE=true
-      fi
-    fi
-
-  elif $PIHOLE_INSTALL ; then
-    ask_yesno "Pi-hole installation." \
-              "Do you want to activate Pi-hole DHCP server ?"
-    if $ANSWER ; then
-      DHCP_ACTIVATE=true
-    fi
-  fi
-
-  if $DHCP_ACTIVATE ; then
-    msgbox "Default DHCP options will be used. Range=$DHCP_RANGE_START - $DHCP_RANGE_END / Router=$DHCP_ROUTER / Domain=$DHCP_DOMAIN / Leases=$DHCP_LEASE h." \
-           "Yo can change this values in your Pi-hole Admin Portal"
-    msgbox "Make sure your router's DHCP server is disabled" \
-           "when using the Pi-hole DHCP server!"
-  fi
-
-  # Ask Pi.NMS default page
+  # Ask whether Pi.NMS should replace the web server's default page
   PIALERT_DEFAULT_PAGE=false
-  if ! $PIHOLE_ACTIVE && ! $PIHOLE_INSTALL; then
-    ask_yesno "As Pi-hole is not going to be available in this system," \
-              "Do you want to use Pi.NMS as default web server page ?" "YES"
-    if $ANSWER ; then
-      PIALERT_DEFAULT_PAGE=true
-    fi
+  ask_yesno "Pi.NMS can be used as the default web server page." \
+            "Do you want to enable this?" "YES"
+  if $ANSWER ; then
+    PIALERT_DEFAULT_PAGE=true
   fi
   
   # Ask Python version
@@ -232,81 +164,6 @@ ask_config() {
          "$PIALERT_HOME/config/pialert.conf"
 
   msgbox "" "The installation will start now"
-}
-
-
-# ------------------------------------------------------------------------------
-# Install Pi-hole
-# ------------------------------------------------------------------------------
-install_pihole() {
-  print_header "Pi-hole"
-
-  if ! $PIHOLE_INSTALL ; then
-    return
-  fi
-
-  print_msg "- Checking if Pi-hole is installed..."
-  if [ -e /usr/local/bin/pihole ] || [ -e /etc/pihole ]; then
-    print_msg "  - Pi-hole already installed"
-    print_msg "`pihole -v 2>&1`"
-    print_msg ""
-
-    PIHOLE_ACTIVE=true
-    return
-  fi
-
-  print_msg "- Installing Pi-hole..."
-  print_msg "  - Pi-hole has its own logfile"
-  curl -sSL https://install.pi-hole.net | bash
-  print_msg ""
-  PIHOLE_ACTIVE=true
-}
-
-
-# ------------------------------------------------------------------------------
-# Activate DHCP
-# ------------------------------------------------------------------------------
-activate_DHCP() {
-  if ! $DHCP_ACTIVATE ; then
-    return
-  fi
-
-  if ! $PIHOLE_ACTIVE ; then
-    return
-  fi
-
-  print_msg "- Checking if DHCP is active..."
-  if [ -e /etc/pihole ]; then
-    DHCP_ACTIVE= `grep DHCP_ACTIVE /etc/pihole/setupVars.conf | awk -F= '/./{print $2}'`
-  fi
-
-  if $DHCP_ACTIVE ; then
-    print_msg "  - DHCP already active"
-  fi
-
-  print_msg "- Activating DHCP..."
-  sudo pihole -a enabledhcp "$DHCP_RANGE_START" "$DHCP_RANGE_END" "$DHCP_ROUTER" "$DHCP_LEASE" "$DHCP_DOMAIN"   2>&1 >> "$LOG"
-  DHCP_ACTIVE=true
-}
-
-
-# ------------------------------------------------------------------------------
-# Add Pi.NMS DNS
-# ------------------------------------------------------------------------------
-add_pialert_DNS() {
-  if ! $PIHOLE_ACTIVE ; then
-    return
-  fi
-
-  print_msg "- Checking if 'pi.alert' is configured in Local DNS..."
-  if grep -Fq pi.alert /etc/pihole/custom.list; then
-    print_msg "  - 'pi.alert' already in Local DNS..."
-    return
-  fi
-
-  print_msg "- Adding 'pi.alert' to Local DNS..."
-  sudo sh -c "echo $MAIN_IP pi.alert >> /etc/pihole/custom.list"  2>&1 >> "$LOG"
-  sudo pihole restartdns                                          2>&1 >> "$LOG"
 }
 
 
@@ -527,8 +384,6 @@ configure_pialert() {
   set_pialert_parameter DDNS_PASSWORD   "'$DDNS_PASSWORD'"
   set_pialert_parameter DDNS_UPDATE_URL "'$DDNS_UPDATE_URL'"
 
-  set_pialert_parameter PIHOLE_ACTIVE   "$PIHOLE_ACTIVE"
-  set_pialert_parameter DHCP_ACTIVE     "$DHCP_ACTIVE"
 }
 
 
@@ -608,21 +463,8 @@ publish_pialert() {
   print_msg "- Publishing Pi.NMS web..."
   sudo ln -s "$PIALERT_HOME/front" "$WEBROOT/pialert"             2>&1 >> "$LOG"
 
-  print_msg "- Configuring http://pi.alert/ redirection..."
-  if [ -e "$LIGHTTPD_CONF_DIR/conf-available/pialert_front.conf" ] ; then
-    sudo rm -r "$LIGHTTPD_CONF_DIR/conf-available/pialert_front.conf"  2>&1 >> "$LOG"
-  fi
-  sudo cp "$PIALERT_HOME/install/pialert_front.conf" "$LIGHTTPD_CONF_DIR/conf-available"  2>&1 >> "$LOG"
-
-  if [ -e "$LIGHTTPD_CONF_DIR/conf-enabled/pialert_front.conf" ] || \
-     [ -L "$LIGHTTPD_CONF_DIR/conf-enabled/pialert_front.conf" ] ; then
-    sudo rm -r "$LIGHTTPD_CONF_DIR/conf-enabled/pialert_front.conf" 2>&1 >> "$LOG"
-  fi
-
-  sudo ln -s ../conf-available/pialert_front.conf  "$LIGHTTPD_CONF_DIR/conf-enabled/pialert_front.conf"  2>&1 >> "$LOG"
-
   print_msg "- Restarting lighttpd..."
-  sudo sudo service lighttpd restart                              2>&1 >> "$LOG"
+  sudo service lighttpd restart                                   2>&1 >> "$LOG"
   # sudo /etc/init.d/lighttpd restart                             2>&1 >> "$LOG"
 }
 

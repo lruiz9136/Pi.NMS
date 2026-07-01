@@ -8,10 +8,9 @@ Estimated time: 20'
 ### Dependencies
   | Dependency | Comments                                                 |
   | ---------- | -------------------------------------------------------- |
-  | Lighttpd   | Probably works on other webservers / not tested          |
+  | Lighttpd   | Installed and configured directly by Pi.NMS              |
   | arp-scan   | Required for Scan Method 1                               |
-  | Pi.hole    | Optional. Scan Method 2. Check devices doing DNS queries |
-  | dnsmasq    | Optional. Scan Method 3. Check devices using DHCP server |
+  | dnsmasq    | Optional. Enrich discovery from a standard lease file    |
   | IEEE HW DB | Necessary to identified Device vendor                    |
 
 ## One-step Automated Install:
@@ -66,35 +65,21 @@ Estimated time: 20'
   ```
 
 
-### Pi-hole Setup (optional)
+### Connect to Pi.NMS
 <!--- --------------------------------------------------------------------- --->
-2.1 - Links & Doc
-  - https://pi-hole.net/
-  - https://github.com/pi-hole/pi-hole
-  - https://github.com/pi-hole/pi-hole/#one-step-automated-install
+After installation, find the host address:
 
-2.2 - Login to the system with pi user
-
-2.3 - Install Pi-hole
-  ```
-  curl -sSL https://install.pi-hole.net | bash
-  ```
-  - Select "Install web admin interface"
-  - Select "Install web server lighttpd"
-
-2.4 - Configure Pi-hole admin password
-  ```
-  pihole -a -p PASSWORD
-  ```
-
-2.5 - Connect to web admin panel
   ```
   hostname -I
   ```
-  or this one if have severals interfaces
+  Or, on hosts with several interfaces:
   ```
   ip -o route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q'
   ```
-  
-  - http://192.168.1.x/admin/
-  - (*replace 192.168.1.x with your devices IP*)
+Open `http://192.168.1.x/pialert/`, replacing the example address with the
+Pi.NMS host address. Pi.NMS installs its own web dependencies and does not
+require an external DNS or DHCP product.
+
+To enable optional dnsmasq lease enrichment, set `DHCP_ACTIVE = True` and
+`DHCP_LEASES` to the lease file path in `config/pialert.conf`. The default path
+is `/var/lib/misc/dnsmasq.leases`.

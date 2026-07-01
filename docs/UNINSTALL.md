@@ -32,24 +32,13 @@ Estimated time: 5'
   sudo rm -rf /var/cache/lighttpd/compress/pialert
   ```
 
-1.5 - Remove Pi.NMS DNS entry
-  ```
-  if [ -f /etc/pihole/custom.list ]; then sudo sed -i '/pi.alert/d' /etc/pihole/custom.list; fi
-  if command -v pihole >/dev/null 2>&1; then sudo pihole restartdns; fi
-  ```
-
-1.6 - Remove Pi.NMS crontab jobs
+1.5 - Remove Pi.NMS crontab jobs
   ```
   if command -v crontab >/dev/null 2>&1; then crontab -l 2>/dev/null | sed ':a;N;$!ba;s/#-------------------------------------------------------------------------------\n#  Pi.Alert\n#  Open Source Network Guard \/ WIFI & LAN intrusion detector \n#\n#  pialert.cron - Back module. Crontab jobs\n#-------------------------------------------------------------------------------\n#  Puche 2021        pi.alert.application@gmail.com        GNU GPLv3\n#-------------------------------------------------------------------------------//g' | sed '/pialert.py/d' | crontab -; fi
   ```
 
 ### Uninstallation Notes
 <!--- --------------------------------------------------------------------- --->
-  - If you installed Pi-hole during the Pi.NMS installation process,
- 
-    Pi-hole will still be available after uninstalling Pi.NMS
-
-
   - lighttpd, PHP, arp-scan & Python have not been uninstalled
  
     They may be required by other software
