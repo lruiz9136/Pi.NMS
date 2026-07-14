@@ -372,11 +372,7 @@ def scan_network ():
     # DEBUG - print number of rows updated
         # print (arpscan_devices)
 
-    # Pi-hole method
-    print ('    Pi-hole Method...')
     openDB()
-    print_log ('Pi-hole copy starts...')
-    copy_pihole_network()
 
     # DHCP Leases method
     print ('    DHCP Leases Method...')
@@ -505,35 +501,6 @@ def execute_arpscan (pRetries):
     return unique_devices
 
 #-------------------------------------------------------------------------------
-def copy_pihole_network ():
-    # check if Pi-hole is active
-    if not PIHOLE_ACTIVE :
-        return    
-
-    # Open Pi-hole DB
-    sql.execute ("ATTACH DATABASE '"+ PIHOLE_DB +"' AS PH")
-
-    # Copy Pi-hole Network table
-    sql.execute ("DELETE FROM PiHole_Network")
-    sql.execute ("""INSERT INTO PiHole_Network (PH_MAC, PH_Vendor, PH_LastQuery,
-                        PH_Name, PH_IP)
-                    SELECT hwaddr, macVendor, lastQuery,
-                        (SELECT name FROM PH.network_addresses
-                         WHERE network_id = id ORDER BY lastseen DESC, ip),
-                        (SELECT ip FROM PH.network_addresses
-                         WHERE network_id = id ORDER BY lastseen DESC, ip)
-                    FROM PH.network
-                    WHERE hwaddr NOT LIKE 'ip-%'
-                      AND hwaddr <> '00:00:00:00:00:00' """)
-    sql.execute ("""UPDATE PiHole_Network SET PH_Name = '(unknown)'
-                    WHERE PH_Name IS NULL OR PH_Name = '' """)
-    # DEBUG
-        # print (sql.rowcount)
-
-    # Close Pi-hole DB
-    sql.execute ("DETACH PH")
-
-#-------------------------------------------------------------------------------
 def read_DHCP_leases ():
     # check DHCP Leases is active
     if not DHCP_ACTIVE :
@@ -572,19 +539,6 @@ def save_scanned_devices (p_arpscan_devices, p_cycle_interval):
                      "    cur_IP, cur_Vendor, cur_ScanMethod) "+
                      "VALUES ("+ cycle + ", :mac, :ip, :hw, 'arp-scan')",
                      p_arpscan_devices) 
-
-    # Insert Pi-hole devices
-    sql.execute ("""INSERT INTO CurrentScan (cur_ScanCycle, cur_MAC, 
-                        cur_IP, cur_Vendor, cur_ScanMethod)
-                    SELECT ?, PH_MAC, PH_IP, PH_Vendor, 'Pi-hole'
-                    FROM PiHole_Network
-                    WHERE PH_LastQuery >= ?
-                      AND NOT EXISTS (SELECT 'X' FROM CurrentScan
-                                      WHERE cur_MAC = PH_MAC
-                                        AND cur_ScanCycle = ? )""",
-                    (cycle,
-                     (int(startTime.strftime('%s')) - 60 * p_cycle_interval),
-                     cycle) )
 
     # Check Internet connectivity
     internet_IP = get_internet_IP()
@@ -627,12 +581,6 @@ def print_scan_stats ():
                     WHERE cur_ScanMethod='arp-scan' AND cur_ScanCycle = ? """,
                     (cycle,))
     print ('        arp-scan Method....:', str (sql.fetchone()[0]) )
-
-    # Devices Pi-hole
-    sql.execute ("""SELECT COUNT(*) FROM CurrentScan
-                    WHERE cur_ScanMethod='PiHole' AND cur_ScanCycle = ? """,
-                    (cycle,))
-    print ('        Pi-hole Method.....: +' + str (sql.fetchone()[0]) )
 
     # New Devices
     sql.execute ("""SELECT COUNT(*) FROM CurrentScan
@@ -729,34 +677,6 @@ def create_new_devices ():
                       AND NOT EXISTS (SELECT 1 FROM Devices
                                       WHERE dev_MAC = cur_MAC) """,
                     (db_datetime(startTime), db_datetime(startTime), cycle) ) 
-
-    # Pi-hole - Insert events for new devices
-    # NOT STRICYLY NECESARY (Devices can be created through Current_Scan)
-    # Bugfix #2 - Pi-hole devices w/o IP
-    print_log ('New devices - 3 Pi-hole Events')
-    sql.execute ("""INSERT INTO Events (eve_MAC, eve_IP, eve_DateTime,
-                        eve_EventType, eve_AdditionalInfo,
-                        eve_PendingAlertEmail)
-                    SELECT PH_MAC, IFNULL (PH_IP,'-'), ?, 'New Device',
-                        '(Pi-Hole) ' || PH_Vendor, 1
-                    FROM PiHole_Network
-                    WHERE NOT EXISTS (SELECT 1 FROM Devices
-                                      WHERE dev_MAC = PH_MAC) """,
-                    (db_datetime(startTime), ) ) 
-
-    # Pi-hole - Create New Devices
-    # Bugfix #2 - Pi-hole devices w/o IP
-    print_log ('New devices - 4 Pi-hole Create devices')
-    sql.execute ("""INSERT INTO Devices (dev_MAC, dev_name, dev_Vendor,
-                        dev_LastIP, dev_FirstConnection, dev_LastConnection,
-                        dev_ScanCycle, dev_AlertEvents, dev_AlertDeviceDown,
-                        dev_PresentLastScan, dev_Source)
-                    SELECT PH_MAC, PH_Name, PH_Vendor, IFNULL (PH_IP,'-'),
-                        ?, ?, 1, 0, 0, 1, 'discovered'
-                    FROM PiHole_Network
-                    WHERE NOT EXISTS (SELECT 1 FROM Devices
-                                      WHERE dev_MAC = PH_MAC) """,
-                    (db_datetime(startTime), db_datetime(startTime)) ) 
 
     # DHCP Leases - Insert events for new devices
     print_log ('New devices - 5 DHCP Leases Events')
@@ -905,19 +825,6 @@ def update_devices_data_from_scan ():
                                   WHERE dev_MAC = cur_MAC
                                     AND dev_ScanCycle = cur_ScanCycle) """,
                     (cycle,)) 
-
-    # Pi-hole Network - Update (unknown) Name
-    print_log ('Update devices - 4 Unknown Name')
-    sql.execute ("""UPDATE Devices
-                    SET dev_NAME = (SELECT PH_Name FROM PiHole_Network
-                                    WHERE PH_MAC = dev_MAC)
-                    WHERE (dev_Name = "(unknown)"
-                           OR dev_Name = ""
-                           OR dev_Name IS NULL)
-                      AND EXISTS (SELECT 1 FROM PiHole_Network
-                                  WHERE PH_MAC = dev_MAC
-                                    AND PH_NAME IS NOT NULL
-                                    AND PH_NAME <> '') """)
 
     # DHCP Leases - Update (unknown) Name
     sql.execute ("""UPDATE Devices

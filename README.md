@@ -36,16 +36,12 @@ network NMS with:
 
 ## Scan Methods
 
-Up to three scanning methods are used:
+Pi.NMS discovers devices without requiring a DNS filtering product:
 
 - **Method 1: arp-scan**. The `arp-scan` system utility searches for devices on
   the network using ARP frames.
-- **Method 2: Pi-hole**. If the Pi-hole DNS server is active, Pi.NMS examines
-  its activity looking for active devices using DNS that were not detected by
-  method 1.
-- **Method 3: dnsmasq**. If the dnsmasq DHCP server is active, Pi.NMS examines
-  DHCP leases to find active devices that were not discovered by the other
-  methods.
+- **Optional dnsmasq leases**. When configured, Pi.NMS can examine a standard
+  dnsmasq lease file to enrich device names and find leased devices.
 
 ## Components
 
@@ -101,9 +97,8 @@ database migrations.
 | AdminLTE     | Admin dashboard template               |
 | FullCalendar | Calendar component                     |
 | SQLite       | Database engine                        |
-| Lighttpd     | Web server                             |
+| Lighttpd     | Standalone web server                  |
 | arp-scan     | Network scanning with ARP              |
-| Pi-hole      | Optional DNS activity source           |
 | dnsmasq      | Optional DHCP lease source             |
 
 ## License

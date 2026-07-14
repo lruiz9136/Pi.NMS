@@ -51,15 +51,6 @@ main() {
   remove_path "$PINMS_ARCHIVE"
   remove_path "$LEGACY_ARCHIVE"
 
-  # Removing 
-  print_header "Removing Pi.NMS DNS name"
-  if [ -f /etc/pihole/custom.list ] ; then
-    sudo sed -i '/pi.alert/d' /etc/pihole/custom.list             >> "$LOG" 2>&1
-    if command -v pihole >/dev/null 2>&1 ; then
-      sudo pihole restartdns                                      >> "$LOG" 2>&1
-    fi
-  fi
-  
   # Uninstall crontab jobs
   print_header "Removing crontab jobs"
   if command -v crontab >/dev/null 2>&1 ; then
@@ -68,10 +59,7 @@ main() {
 
   # final message
   print_header "Uninstallation process finished"
-  print_msg "Note1: If you installed Pi-hole during the Pi.NMS installation process"
-  print_msg "       Pi-hole will still be available after uninstalling Pi.NMS"
-  print_msg ""
-  print_msg "Note2: lighttpd, PHP, arp-scan & Python have not been uninstalled."
+  print_msg "Note: lighttpd, PHP, arp-scan & Python have not been uninstalled."
   print_msg "       They may be required by other software"
   print_msg "       You can uninstall them manually with command 'apt-get remove XX'"
 }
