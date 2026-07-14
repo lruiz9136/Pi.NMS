@@ -28,6 +28,9 @@
   
   # MAIN_IP=`ip -o route get 1 | sed -n 's/.*src \([0-9.]\+\).*/\1/p'`
   MAIN_IP=`ip -o route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q'`
+  if [ "$MAIN_IP" = "" ] ; then
+    MAIN_IP=`hostname -I 2>/dev/null | awk '{print $1}'`
+  fi
   
   USE_PYTHON_VERSION=0
   PYTHON_BIN=python
@@ -373,6 +376,9 @@ configure_pialert() {
   
   set_pialert_parameter REPORT_MAIL     "$REPORT_MAIL"
   set_pialert_parameter REPORT_TO       "'$REPORT_TO'"
+  if [ "$MAIN_IP" != "" ] ; then
+    set_pialert_parameter REPORT_DEVICE_URL "'http://$MAIN_IP/pialert/deviceDetails.php?mac='"
+  fi
   set_pialert_parameter SMTP_SERVER     "'$SMTP_SERVER'"
   set_pialert_parameter SMTP_PORT       "$SMTP_PORT"
   set_pialert_parameter SMTP_USER       "'$SMTP_USER'"

@@ -20,6 +20,10 @@ PINMS_REPO="${PINMS_REPO:-lruiz9136/Pi.NMS}"
 PINMS_BRANCH="${PINMS_BRANCH:-main}"
 PINMS_ARCHIVE_URL="${PINMS_ARCHIVE_URL:-https://github.com/$PINMS_REPO/archive/refs/heads/$PINMS_BRANCH.tar.gz}"
 PINMS_ARCHIVE="$INSTALL_DIR/pinms_latest.tar.gz"
+MAIN_IP=`ip -o route get 1 | sed 's/^.*src \([^ ]*\).*$/\1/;q'`
+if [ "$MAIN_IP" = "" ] ; then
+  MAIN_IP=`hostname -I 2>/dev/null | awk '{print $1}'`
+fi
 CHECK_ONLY=false
 
 if [ "$1" = "--check" ] || [ "$PINMS_CHECK_ONLY" = "1" ] ; then
@@ -325,10 +329,17 @@ update_config() {
   print_msg "- Updating config file..."
   sed -i '/VERSION/d' "$PIALERT_HOME/config/pialert.conf"                          2>&1 >> "$LOG"
   sed -i 's/PA_FRONT_URL/REPORT_DEVICE_URL/g' "$PIALERT_HOME/config/pialert.conf"  2>&1 >> "$LOG"
+  if [ "$MAIN_IP" != "" ] ; then
+    sed -i "s|^REPORT_DEVICE_URL *= *['\"]http://pi.alert/deviceDetails.php?mac=['\"]|REPORT_DEVICE_URL = 'http://$MAIN_IP/pialert/deviceDetails.php?mac='|" "$PIALERT_HOME/config/pialert.conf"  2>&1 >> "$LOG"
+  fi
   
   if ! grep -Fq PIALERT_PATH "$PIALERT_HOME/config/pialert.conf" ; then
     echo "PIALERT_PATH    = '$PIALERT_HOME'" >> "$PIALERT_HOME/config/pialert.conf"
   fi      
+
+  if [ "$MAIN_IP" != "" ] && ! grep -Fq REPORT_DEVICE_URL "$PIALERT_HOME/config/pialert.conf" ; then
+    echo "REPORT_DEVICE_URL = 'http://$MAIN_IP/pialert/deviceDetails.php?mac='" >> "$PIALERT_HOME/config/pialert.conf"
+  fi
 
   if ! grep -Fq QUERY_MYIP_SERVER "$PIALERT_HOME/config/pialert.conf" ; then
     echo "QUERY_MYIP_SERVER = 'http://ipv4.icanhazip.com'" >> "$PIALERT_HOME/config/pialert.conf"
