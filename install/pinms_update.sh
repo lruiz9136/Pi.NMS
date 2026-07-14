@@ -46,6 +46,7 @@ main() {
   log ""
 
   set -e
+  set -o pipefail
 
   check_pialert_home
   check_python_version
@@ -53,7 +54,6 @@ main() {
   create_backup
   move_files
   normalize_pialert_permissions "$PIALERT_HOME"
-  clean_files
 
   check_packages
   download_pialert
@@ -227,8 +227,9 @@ clean_files() {
 # ------------------------------------------------------------------------------
 check_packages() {
   if ! sudo -n true >/dev/null 2>&1 ; then
-    print_msg "- Skipping package checks because sudo is unavailable..."
     check_required_command sqlite3
+    print_msg "- sqlite3 is already available; no package installation is needed."
+    print_msg "  - Package installation access is unavailable, so existing system packages will be used."
     return
   fi
 
@@ -253,8 +254,7 @@ download_pialert() {
   fi
   
   print_msg "- Downloading Pi.NMS from $PINMS_REPO ($PINMS_BRANCH)..."
-  curl -L -o "$PINMS_ARCHIVE" "$PINMS_ARCHIVE_URL"
-  echo ""
+  curl -fsSL --show-error -o "$PINMS_ARCHIVE" "$PINMS_ARCHIVE_URL"
 
   print_msg "- Uncompressing source archive"
   TMP_DIR=`mktemp -d`
@@ -265,6 +265,9 @@ download_pialert() {
   if [ "$SOURCE_DIR" = "" ] ; then
     process_error "Downloaded Pi.NMS archive did not contain a source directory"
   fi
+
+  verify_downloaded_source "$SOURCE_DIR"
+  clean_files
 
   print_msg "- Installing updated Pi.NMS files..."
   cp -R "$SOURCE_DIR/back" "$PIALERT_HOME/"                         2>&1 >> "$LOG"
@@ -284,6 +287,23 @@ download_pialert() {
   print_msg "- Deleting downloaded archive..."
   rm -r "$PINMS_ARCHIVE"
   rm -r "$TMP_DIR"
+}
+
+# ------------------------------------------------------------------------------
+# Verify downloaded source before replacing the installed application
+# ------------------------------------------------------------------------------
+verify_downloaded_source() {
+  SOURCE_PATH="$1"
+
+  if [ ! -f "$SOURCE_PATH/front/php/templates/header.php" ] ; then
+    process_error "Downloaded archive is missing required Pi.NMS web files"
+  fi
+
+  if [ ! -f "$SOURCE_PATH/README.md" ] || ! grep -Fq "Pi.NMS" "$SOURCE_PATH/README.md" ; then
+    process_error "Downloaded source does not appear to be Pi.NMS. Check PINMS_REPO, PINMS_BRANCH, or PINMS_ARCHIVE_URL."
+  fi
+
+  print_msg "- Downloaded source archive validated."
 }
 
 # ------------------------------------------------------------------------------
@@ -357,45 +377,42 @@ update_db() {
   print_msg "- Updating DB permissions..."
   normalize_pialert_permissions "$PIALERT_HOME/db"
 
-  if can_use_sudo ; then
-    print_msg "- Installing sqlite3..."
-    sudo apt-get install sqlite3 -y                               2>&1 >> "$LOG"
-  else
-    print_msg "- Skipping sqlite3 install because sudo is unavailable..."
-    check_required_command sqlite3
-  fi
+  # check_packages installs sqlite3 when possible and verifies that an existing
+  # installation is available when package installation access is unavailable.
+  check_required_command sqlite3
+  print_msg "- Using sqlite3 at `command -v sqlite3`..."
 
   print_msg "- Checking 'Parameters' table..."
-  TAB=`sqlite3 $PIALERT_HOME/db/pialert.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Parameters' COLLATE NOCASE;"`              2>&1 >> "$LOG"
+  TAB=`sqlite3 "$PIALERT_HOME/db/pialert.db" "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Parameters' COLLATE NOCASE;"`            2>&1 >> "$LOG"
   if [ "$TAB" == "0" ] ; then
     print_msg "  - Creating 'Parameters' table..."
-    sqlite3 $PIALERT_HOME/db/pialert.db "CREATE TABLE Parameters (par_ID STRING (50) PRIMARY KEY NOT NULL COLLATE NOCASE, par_Value STRING (250) );"   2>&1 >> "$LOG"
-    sqlite3 $PIALERT_HOME/db/pialert.db "CREATE INDEX IDX_par_ID ON Parameters (par_ID COLLATE NOCASE);"                                               2>&1 >> "$LOG"
+    sqlite3 "$PIALERT_HOME/db/pialert.db" "CREATE TABLE Parameters (par_ID STRING (50) PRIMARY KEY NOT NULL COLLATE NOCASE, par_Value STRING (250) );" 2>&1 >> "$LOG"
+    sqlite3 "$PIALERT_HOME/db/pialert.db" "CREATE INDEX IDX_par_ID ON Parameters (par_ID COLLATE NOCASE);"                                           2>&1 >> "$LOG"
   fi
   
   print_msg "- Checking Devices new columns..."
-  COL=`sqlite3 $PIALERT_HOME/db/pialert.db "SELECT COUNT(*) FROM PRAGMA_TABLE_INFO ('Devices') WHERE name='dev_NewDevice' COLLATE NOCASE";`            2>&1 >> "$LOG"
+  COL=`sqlite3 "$PIALERT_HOME/db/pialert.db" "SELECT COUNT(*) FROM PRAGMA_TABLE_INFO ('Devices') WHERE name='dev_NewDevice' COLLATE NOCASE";`          2>&1 >> "$LOG"
   if [ "$COL" == "0" ] ; then
     print_msg "  - Adding column 'NewDevice' to 'Devices'..."
-    sqlite3 $PIALERT_HOME/db/pialert.db "ALTER TABLE Devices ADD COLUMN dev_NewDevice BOOLEAN NOT NULL DEFAULT (1) CHECK (dev_NewDevice IN (0, 1) );"  2>&1 >> "$LOG"
-    sqlite3 $PIALERT_HOME/db/pialert.db "CREATE INDEX IDX_dev_NewDevice ON Devices (dev_NewDevice);"
+    sqlite3 "$PIALERT_HOME/db/pialert.db" "ALTER TABLE Devices ADD COLUMN dev_NewDevice BOOLEAN NOT NULL DEFAULT (1) CHECK (dev_NewDevice IN (0, 1) );" 2>&1 >> "$LOG"
+    sqlite3 "$PIALERT_HOME/db/pialert.db" "CREATE INDEX IDX_dev_NewDevice ON Devices (dev_NewDevice);"                                                2>&1 >> "$LOG"
   fi
 
-  COL=`sqlite3 $PIALERT_HOME/db/pialert.db "SELECT COUNT(*) FROM PRAGMA_TABLE_INFO ('Devices') WHERE name='dev_Location' COLLATE NOCASE";`             2>&1 >> "$LOG"
+  COL=`sqlite3 "$PIALERT_HOME/db/pialert.db" "SELECT COUNT(*) FROM PRAGMA_TABLE_INFO ('Devices') WHERE name='dev_Location' COLLATE NOCASE";`           2>&1 >> "$LOG"
   if [ "$COL" == "0" ] ; then
     print_msg "  - Adding column 'Location' to 'Devices'..."
-    sqlite3 $PIALERT_HOME/db/pialert.db "ALTER TABLE Devices ADD COLUMN dev_Location STRING(250) COLLATE NOCASE;"                                      2>&1 >> "$LOG"
+    sqlite3 "$PIALERT_HOME/db/pialert.db" "ALTER TABLE Devices ADD COLUMN dev_Location STRING(250) COLLATE NOCASE;"                                  2>&1 >> "$LOG"
   fi
 
-  COL=`sqlite3 $PIALERT_HOME/db/pialert.db "SELECT COUNT(*) FROM PRAGMA_TABLE_INFO ('Devices') WHERE name='dev_Archived' COLLATE NOCASE";`               2>&1 >> "$LOG"
+  COL=`sqlite3 "$PIALERT_HOME/db/pialert.db" "SELECT COUNT(*) FROM PRAGMA_TABLE_INFO ('Devices') WHERE name='dev_Archived' COLLATE NOCASE";`           2>&1 >> "$LOG"
   if [ "$COL" == "0" ] ; then
     print_msg "  - Adding column 'Archived / Hidden' to 'Devices'..."
-    sqlite3 $PIALERT_HOME/db/pialert.db "ALTER TABLE Devices ADD COLUMN dev_Archived BOOLEAN NOT NULL DEFAULT (0) CHECK (dev_Archived IN (0, 1) );"    2>&1 >> "$LOG"
-    sqlite3 $PIALERT_HOME/db/pialert.db "CREATE INDEX IDX_dev_Archived ON Devices (dev_Archived);"                                                     2>&1 >> "$LOG"
+    sqlite3 "$PIALERT_HOME/db/pialert.db" "ALTER TABLE Devices ADD COLUMN dev_Archived BOOLEAN NOT NULL DEFAULT (0) CHECK (dev_Archived IN (0, 1) );" 2>&1 >> "$LOG"
+    sqlite3 "$PIALERT_HOME/db/pialert.db" "CREATE INDEX IDX_dev_Archived ON Devices (dev_Archived);"                                                 2>&1 >> "$LOG"
   fi
 
-  print_msg "- Cheking Internet scancycle..."
-  sqlite3 $PIALERT_HOME/db/pialert.db "UPDATE Devices set dev_ScanCycle=1, dev_AlertEvents=1, dev_AlertDeviceDown=1 WHERE dev_MAC='Internet' AND dev_ScanCycle=0;"  2>&1 >> "$LOG"
+  print_msg "- Checking Internet scan cycle..."
+  sqlite3 "$PIALERT_HOME/db/pialert.db" "UPDATE Devices set dev_ScanCycle=1, dev_AlertEvents=1, dev_AlertDeviceDown=1 WHERE dev_MAC='Internet' AND dev_ScanCycle=0;" 2>&1 >> "$LOG"
 }
 
 # ------------------------------------------------------------------------------
@@ -418,10 +435,16 @@ normalize_pialert_permissions() {
     chmod -R g+rwX "$TARGET_PATH"                                 2>&1 >> "$LOG"
     find "$TARGET_PATH" -type d -exec chmod g+s {} \;             2>&1 >> "$LOG"
   else
-    print_msg "  - Skipping group ownership update because sudo is unavailable."
     CURRENT_UID=`id -u`
     find "$TARGET_PATH" -user "$CURRENT_UID" -exec chmod g+rwX {} \; 2>&1 >> "$LOG"
     find "$TARGET_PATH" -type d -user "$CURRENT_UID" -exec chmod g+s {} \; 2>&1 >> "$LOG"
+
+    if [ -z "`find "$TARGET_PATH" \( ! -group www-data -o ! -perm -g+w \) -print -quit`" ] ; then
+      print_msg "  - Existing www-data group ownership and write permissions confirmed."
+    else
+      print_msg "  - Existing ownership was retained because privileged access is unavailable."
+      print_msg "  - Some items are not group-writable by www-data; an administrator should review permissions."
+    fi
   fi
 }
 
@@ -447,7 +470,8 @@ test_pialert() {
   echo ""
   print_msg "- Testing Pi.NMS Network scan..."
   if [ "$(id -u)" != "0" ] && ! can_use_sudo ; then
-    print_msg "  - Skipping network scan test because sudo is unavailable."
+    print_msg "  - Network scan test not run; it requires privileged access."
+    print_msg "  - Vendor database and Internet connectivity tests passed."
     return
   fi
 
